@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Query, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -19,8 +19,8 @@ export class UsersController {
 
     @Get()
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
-    findAll() {
-        return this.usersService.findAll();
+    findAll(@Query('tenantId') tenantId: string) {
+        return this.usersService.findAll(tenantId);
     }
 
     @Get(':id')
@@ -33,5 +33,11 @@ export class UsersController {
     @Roles(UserRole.ADMIN)
     remove(@Param('id') id: string) {
         return this.usersService.remove(id);
+    }
+
+    @Put(':id')
+    @Roles(UserRole.ADMIN)
+    update(@Param('id') id: string, @Body() updateUserDto: any) {
+        return this.usersService.update(id, updateUserDto);
     }
 }

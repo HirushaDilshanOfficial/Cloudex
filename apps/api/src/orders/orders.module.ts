@@ -7,9 +7,10 @@ import { OrdersController } from './orders.controller';
 import { EventsModule } from '../events/events.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { RecipesModule } from '../recipes/recipes.module';
+import { KdsModule } from '../kds/kds.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Order, OrderItem]), EventsModule, InventoryModule, RecipesModule],
+    imports: [TypeOrmModule.forFeature([Order, OrderItem]), EventsModule, InventoryModule, RecipesModule, KdsModule],
     controllers: [OrdersController],
     providers: [OrdersService],
     exports: [TypeOrmModule, OrdersService],

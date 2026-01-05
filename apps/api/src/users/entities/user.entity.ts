@@ -6,10 +6,17 @@ export enum UserRole {
     ADMIN = 'admin',
     MANAGER = 'manager',
     CASHIER = 'cashier',
+    KITCHEN = 'kitchen',
 }
 
 @Entity('users')
 export class User extends BaseEntity {
+    @Column({ nullable: true })
+    firstName: string;
+
+    @Column({ nullable: true })
+    lastName: string;
+
     @Column({ unique: true })
     email: string;
 

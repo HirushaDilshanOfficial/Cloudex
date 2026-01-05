@@ -4,6 +4,15 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
+import Link from 'next/link';
+import { jwtDecode } from 'jwt-decode';
+
+interface DecodedToken {
+    role: string;
+    sub: string;
+    email: string;
+    tenantId: string;
+}
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -22,12 +31,15 @@ export default function LoginPage() {
             });
             const { access_token, user } = response.data;
             setToken(access_token);
-            // Decode token or fetch user details if needed. For now, assuming user info is returned or we just use token.
-            // If user info is not returned, we might need to fetch it.
-            // But the backend login endpoint returns { access_token }.
-            // Let's assume we just need the token for now.
+            const decoded: DecodedToken = jwtDecode(access_token);
 
-            router.push('/dashboard');
+            if (decoded.role === 'cashier') {
+                router.push('/pos');
+            } else if (decoded.role === 'kitchen') {
+                router.push('/kds');
+            } else {
+                router.push('/dashboard');
+            }
         } catch (err) {
             setError('Invalid credentials');
         }
@@ -66,6 +78,9 @@ export default function LoginPage() {
                         Login
                     </button>
                 </form>
+                <div className="mt-4 text-center text-sm text-gray-600">
+                    Don't have an account? <Link href="/register" className="text-primary hover:underline">Register</Link>
+                </div>
             </div>
         </div>
     );

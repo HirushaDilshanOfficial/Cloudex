@@ -9,6 +9,9 @@ import { AuthModule } from './auth/auth.module';
 import { EventsModule } from './events/events.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { RecipesModule } from './recipes/recipes.module';
+import { KdsModule } from './kds/kds.module';
+import { TablesModule } from './tables/tables.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -35,6 +38,9 @@ import { AppService } from './app.service';
     EventsModule,
     InventoryModule,
     RecipesModule,
+    KdsModule,
+    TablesModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

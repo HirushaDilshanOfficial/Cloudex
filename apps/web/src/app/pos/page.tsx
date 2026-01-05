@@ -4,6 +4,9 @@ import React from 'react';
 import { PosLayout } from '@/components/pos/pos-layout';
 import { ProductCard } from '@/components/pos/product-card';
 import { CartSidebar } from '@/components/pos/cart-sidebar';
+import { LogOut } from 'lucide-react';
+import { useAuthStore } from '@/store/auth-store';
+import { useRouter } from 'next/navigation';
 
 import { useSync } from '@/hooks/use-sync';
 
@@ -20,11 +23,27 @@ const MOCK_PRODUCTS = [
 export default function POSPage() {
     // TODO: Get tenantId from auth context
     useSync('default-tenant-id');
+    const setToken = useAuthStore((state) => state.setToken);
+    const router = useRouter();
+
+    const handleLogout = () => {
+        setToken('');
+        router.push('/login');
+    };
 
     return (
         <PosLayout sidebar={<CartSidebar />}>
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Menu</h1>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold text-gray-800">Menu</h1>
+                    <button
+                        onClick={handleLogout}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    >
+                        <LogOut size={20} />
+                        <span className="font-medium">Logout</span>
+                    </button>
+                </div>
                 <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
                     {['All', 'Burgers', 'Pizza', 'Sides', 'Drinks', 'Starters', 'Salads'].map((cat) => (
                         <button

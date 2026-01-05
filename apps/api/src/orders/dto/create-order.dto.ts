@@ -4,10 +4,14 @@ import { CreateOrderItemDto } from './create-order-item.dto';
 
 export class CreateOrderDto {
     @IsUUID()
-    @IsNotEmpty()
+    @IsString()
     tenantId: string;
 
-    @IsUUID()
+    @IsString()
+    @IsOptional()
+    tableId?: string;
+
+    @IsArray()
     @IsOptional()
     cashierId?: string;
 

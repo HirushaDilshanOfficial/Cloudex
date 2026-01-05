@@ -1,6 +1,7 @@
 import { Controller, Request, Post, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '../common/decorators/public.decorator';
+import { SignUpDto } from './dto/sign-up.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -20,5 +21,11 @@ export class AuthController {
     @Post('register')
     async register(@Body() registerDto: any) {
         return this.authService.register(registerDto);
+    }
+
+    @Public()
+    @Post('signup')
+    async signUp(@Body() signUpDto: SignUpDto) {
+        return this.authService.signUp(signUpDto);
     }
 }

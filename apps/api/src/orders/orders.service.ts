@@ -8,6 +8,7 @@ import { EventsGateway } from '../events/events.gateway';
 import { InventoryService } from '../inventory/inventory.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { StockMovementType } from '../inventory/entities/stock-movement.entity';
+import { KdsGateway } from '../kds/kds.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -19,6 +20,7 @@ export class OrdersService {
         private eventsGateway: EventsGateway,
         private inventoryService: InventoryService,
         private recipesService: RecipesService,
+        private kdsGateway: KdsGateway,
     ) { }
 
     async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -58,6 +60,7 @@ export class OrdersService {
 
         const fullOrder = await this.findOne(savedOrder.id);
         this.eventsGateway.emitOrderUpdate(fullOrder.tenantId, fullOrder);
+        this.kdsGateway.emitNewOrder(fullOrder.tenantId, fullOrder);
 
         return fullOrder;
     }
@@ -65,14 +68,15 @@ export class OrdersService {
     findAll(tenantId: string): Promise<Order[]> {
         return this.ordersRepository.find({
             where: { tenantId },
-            relations: ['items', 'items.product', 'cashier'],
+            relations: ['items', 'items.product', 'cashier', 'table'],
+            order: { createdAt: 'DESC' },
         });
     }
 
     async findOne(id: string): Promise<Order> {
         const order = await this.ordersRepository.findOne({
             where: { id },
-            relations: ['items', 'items.product', 'cashier'],
+            relations: ['items', 'items.product', 'cashier', 'table'],
         });
         if (!order) {
             throw new Error('Order not found');

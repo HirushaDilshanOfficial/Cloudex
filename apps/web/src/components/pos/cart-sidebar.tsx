@@ -1,16 +1,101 @@
 import React from 'react';
 import { useCartStore } from '@/store/cart-store';
-import { Trash2, Minus, Plus } from 'lucide-react';
+import { Trash2, Minus, Plus, Armchair } from 'lucide-react';
+import axios from 'axios';
+import { useAuthStore } from '@/store/auth-store';
+import { jwtDecode } from 'jwt-decode';
+import { useEffect, useState } from 'react';
+
+interface Table {
+    id: string;
+    name: string;
+    status: string;
+}
+
+interface DecodedToken {
+    tenantId: string;
+}
 
 export function CartSidebar() {
     const { items, removeItem, updateQuantity, total, clearCart } = useCartStore();
+    const [tables, setTables] = useState<Table[]>([]);
+    const [selectedTable, setSelectedTable] = useState<string>('');
+    const token = useAuthStore((state) => state.token);
+    const [tenantId, setTenantId] = useState<string>('');
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+    useEffect(() => {
+        if (token) {
+            try {
+                const decoded: DecodedToken = jwtDecode(token);
+                setTenantId(decoded.tenantId);
+            } catch (error) {
+                console.error('Invalid token', error);
+            }
+        }
+    }, [token]);
+
+    useEffect(() => {
+        const fetchTables = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3001/tables?tenantId=${tenantId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setTables(response.data.filter((t: Table) => t.status === 'available'));
+            } catch (error) {
+                console.error('Failed to fetch tables', error);
+            }
+        };
+
+        if (token && tenantId) {
+            fetchTables();
+        }
+    }, [token, tenantId]);
+
+    const handleCheckout = async () => {
+        if (items.length === 0) return;
+        setIsCheckingOut(true);
+        try {
+            await axios.post('http://localhost:3001/orders', {
+                items: items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity
+                })),
+                tenantId,
+                tableId: selectedTable || null,
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            clearCart();
+            setSelectedTable('');
+            alert('Order placed successfully!');
+        } catch (error) {
+            console.error('Failed to place order', error);
+            alert('Failed to place order');
+        } finally {
+            setIsCheckingOut(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
                 <h2 className="text-xl font-bold text-gray-800">Current Order</h2>
-                <p className="text-sm text-gray-500">{items.length} items</p>
+                <div className="mt-2">
+                    <select
+                        value={selectedTable}
+                        onChange={(e) => setSelectedTable(e.target.value)}
+                        className="w-full p-2 border rounded-lg text-sm bg-gray-50 border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                        <option value="">Select Table (Optional)</option>
+                        {tables.map((table) => (
+                            <option key={table.id} value={table.id}>
+                                {table.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {/* Cart Items */}
@@ -76,12 +161,17 @@ export function CartSidebar() {
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={clearCart}
-                        className="px-4 py-3 rounded-lg border border-red-200 text-red-600 font-medium hover:bg-red-50 transition-colors"
+                        disabled={isCheckingOut}
+                        className="px-4 py-3 rounded-lg border border-red-200 text-red-600 font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>
-                    <button className="px-4 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25">
-                        Pay Now
+                    <button
+                        onClick={handleCheckout}
+                        disabled={isCheckingOut || items.length === 0}
+                        className="px-4 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25 disabled:opacity-50 disabled:shadow-none"
+                    >
+                        {isCheckingOut ? 'Processing...' : 'Pay Now'}
                     </button>
                 </div>
             </div>

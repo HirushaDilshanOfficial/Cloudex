@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put } from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -26,5 +26,11 @@ export class TenantsController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.tenantsService.findOne(id);
+    }
+
+    @Put(':id')
+    @Roles(UserRole.ADMIN)
+    update(@Param('id') id: string, @Body() updateTenantDto: any) {
+        return this.tenantsService.update(id, updateTenantDto);
     }
 }

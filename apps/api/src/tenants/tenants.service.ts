@@ -23,4 +23,9 @@ export class TenantsService {
     findOne(id: string): Promise<Tenant | null> {
         return this.tenantsRepository.findOne({ where: { id } });
     }
+
+    async update(id: string, updateTenantDto: any): Promise<Tenant> {
+        await this.tenantsRepository.update(id, updateTenantDto);
+        return this.tenantsRepository.findOne({ where: { id } }) as Promise<Tenant>;
+    }
 }
