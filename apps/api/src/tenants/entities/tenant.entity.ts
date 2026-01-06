@@ -1,6 +1,7 @@
 import { Entity, Column, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
+import { Branch } from '../../branches/entities/branch.entity';
 
 @Entity('tenants')
 export class Tenant extends BaseEntity {
@@ -24,4 +25,7 @@ export class Tenant extends BaseEntity {
 
     @OneToMany(() => User, (user) => user.tenant)
     users: User[];
+
+    @OneToMany(() => Branch, (branch) => branch.tenant)
+    branches: Branch[];
 }

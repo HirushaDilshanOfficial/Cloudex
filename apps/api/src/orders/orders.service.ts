@@ -29,6 +29,7 @@ export class OrdersService {
         const order = this.ordersRepository.create({
             ...orderData,
             status: OrderStatus.PENDING,
+            branchId: (createOrderDto as any).user?.branchId, // Assuming user is injected into DTO or passed separately
         });
 
         const savedOrder = await this.ordersRepository.save(order);
@@ -65,10 +66,17 @@ export class OrdersService {
         return fullOrder;
     }
 
-    findAll(tenantId: string): Promise<Order[]> {
+    findAll(tenantId: string, user?: any): Promise<Order[]> {
+        const where: any = { tenantId };
+
+        // If user is not admin and has a branchId, filter by branch
+        if (user && user.role !== 'admin' && user.branchId) {
+            where.branchId = user.branchId;
+        }
+
         return this.ordersRepository.find({
-            where: { tenantId },
-            relations: ['items', 'items.product', 'cashier', 'table'],
+            where,
+            relations: ['items', 'items.product', 'cashier', 'table', 'branch'],
             order: { createdAt: 'DESC' },
         });
     }
@@ -76,7 +84,7 @@ export class OrdersService {
     async findOne(id: string): Promise<Order> {
         const order = await this.ordersRepository.findOne({
             where: { id },
-            relations: ['items', 'items.product', 'cashier', 'table'],
+            relations: ['items', 'items.product', 'cashier', 'table', 'branch'],
         });
         if (!order) {
             throw new Error('Order not found');

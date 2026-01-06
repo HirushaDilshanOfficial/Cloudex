@@ -120,8 +120,8 @@ export default function AnalyticsPage() {
                                 <LineChart data={salesTrend}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                     <XAxis dataKey="date" />
-                                    <YAxis prefix="$" />
-                                    <Tooltip formatter={(value: number) => [`$${value}`, 'Revenue']} />
+                                    <YAxis tickFormatter={(value) => `$${value}`} />
+                                    <Tooltip formatter={(value: number | undefined) => [`$${value || 0}`, 'Revenue']} />
                                     <Line
                                         type="monotone"
                                         dataKey="revenue"

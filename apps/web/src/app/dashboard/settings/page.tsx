@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { TenantLayout } from '@/components/tenant/tenant-layout';
 import { useAuthStore } from '@/store/auth-store';
 import axios from 'axios';
-import { Save, Building, DollarSign, Printer } from 'lucide-react';
+import { Save, Building, DollarSign, Printer, Store } from 'lucide-react';
+import { BranchesSettings } from '@/components/settings/branches-settings';
 import { jwtDecode } from 'jwt-decode';
 
 interface TenantSettings {
@@ -141,6 +142,12 @@ export default function SettingsPage() {
                         >
                             <Printer size={18} /> Hardware
                         </button>
+                        <button
+                            onClick={() => setActiveTab('branches')}
+                            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'branches' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <Store size={18} /> Branches
+                        </button>
                     </div>
 
                     <form onSubmit={handleSave} className="p-6">
@@ -233,16 +240,22 @@ export default function SettingsPage() {
                             </div>
                         )}
 
-                        <div className="mt-8 flex justify-end">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                            >
-                                <Save size={20} />
-                                {saving ? 'Saving...' : 'Save Changes'}
-                            </button>
-                        </div>
+                        {activeTab === 'branches' && (
+                            <BranchesSettings />
+                        )}
+
+                        {activeTab !== 'branches' && (
+                            <div className="mt-8 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                                >
+                                    <Save size={20} />
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>

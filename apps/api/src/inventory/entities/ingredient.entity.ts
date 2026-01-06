@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('ingredients')
 export class Ingredient {
@@ -19,6 +19,13 @@ export class Ingredient {
 
     @Column()
     tenantId: string;
+
+    @Column({ nullable: true })
+    branchId: string;
+
+    @ManyToOne('Branch', { nullable: true })
+    @JoinColumn({ name: 'branchId' })
+    branch: any;
 
     @CreateDateColumn()
     createdAt: Date;

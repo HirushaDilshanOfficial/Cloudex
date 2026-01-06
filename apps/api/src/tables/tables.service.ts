@@ -16,15 +16,20 @@ export class TablesService {
         return this.tablesRepository.save(table);
     }
 
-    findAll(tenantId: string) {
+    findAll(tenantId: string, branchId?: string) {
+        const where: any = { tenantId };
+        if (branchId) {
+            where.branchId = branchId;
+        }
         return this.tablesRepository.find({
-            where: { tenantId },
+            where,
             order: { name: 'ASC' },
+            relations: ['branch'],
         });
     }
 
     findOne(id: string) {
-        return this.tablesRepository.findOne({ where: { id } });
+        return this.tablesRepository.findOne({ where: { id }, relations: ['branch'] });
     }
 
     async update(id: string, updateTableDto: UpdateTableDto) {

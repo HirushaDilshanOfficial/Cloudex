@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -13,14 +13,15 @@ export class OrdersController {
 
     @Post()
     @Roles(UserRole.CASHIER, UserRole.MANAGER, UserRole.ADMIN)
-    create(@Body() createOrderDto: CreateOrderDto) {
+    create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
+        (createOrderDto as any).user = req.user;
         return this.ordersService.create(createOrderDto);
     }
 
     @Get()
-    @Roles(UserRole.MANAGER, UserRole.ADMIN)
-    findAll(@Query('tenantId') tenantId: string) {
-        return this.ordersService.findAll(tenantId);
+    @Roles(UserRole.MANAGER, UserRole.ADMIN, UserRole.CASHIER)
+    findAll(@Query('tenantId') tenantId: string, @Request() req) {
+        return this.ordersService.findAll(tenantId, req.user);
     }
 
     @Get(':id')

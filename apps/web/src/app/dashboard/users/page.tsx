@@ -13,6 +13,11 @@ interface User {
     lastName: string;
     email: string;
     role: string;
+    branchId?: string;
+    branch?: {
+        id: string;
+        name: string;
+    };
 }
 
 interface DecodedToken {
@@ -29,7 +34,9 @@ export default function UserManagementPage() {
         email: '',
         password: '',
         role: 'cashier',
+        branchId: '',
     });
+    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
@@ -45,6 +52,17 @@ export default function UserManagementPage() {
             }
         }
     }, [token]);
+
+    const fetchBranches = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/branches', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setBranches(response.data);
+        } catch (error) {
+            console.error('Failed to fetch branches', error);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -62,6 +80,7 @@ export default function UserManagementPage() {
     useEffect(() => {
         if (token && tenantId) {
             fetchUsers();
+            fetchBranches();
         }
     }, [token, tenantId]);
 
@@ -86,7 +105,9 @@ export default function UserManagementPage() {
             setShowModal(false);
             setEditingUser(null);
             fetchUsers();
-            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier' });
+            setEditingUser(null);
+            fetchUsers();
+            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier', branchId: '' });
         } catch (error: any) {
             console.error('Failed to save user', error);
             if (error.response && error.response.status === 409) {
@@ -105,6 +126,7 @@ export default function UserManagementPage() {
             email: user.email || '',
             password: '', // Don't populate password
             role: user.role,
+            branchId: user.branchId || '',
         });
         setShowModal(true);
         setError('');
@@ -133,7 +155,7 @@ export default function UserManagementPage() {
                     <button
                         onClick={() => {
                             setEditingUser(null);
-                            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier' });
+                            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier', branchId: '' });
                             setError('');
                             setShowModal(true);
                         }}
@@ -155,6 +177,7 @@ export default function UserManagementPage() {
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Name</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Role</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Branch</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -176,6 +199,9 @@ export default function UserManagementPage() {
                                                             'bg-yellow-100 text-yellow-700'}`}>
                                                 {user.role}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600">
+                                            {user.branch?.name || '-'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button
@@ -263,6 +289,21 @@ export default function UserManagementPage() {
                                         <option value="manager">Manager</option>
                                         <option value="cashier">Cashier</option>
                                         <option value="kitchen">Kitchen</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Branch</label>
+                                    <select
+                                        value={formData.branchId}
+                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                        className="w-full p-2 border rounded-lg mt-1"
+                                    >
+                                        <option value="">No Branch (All Access if Admin)</option>
+                                        {branches.map((branch) => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex justify-end gap-2 mt-6">

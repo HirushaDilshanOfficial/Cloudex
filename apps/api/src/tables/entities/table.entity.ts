@@ -29,4 +29,11 @@ export class Table extends BaseEntity {
     @ManyToOne(() => Tenant)
     @JoinColumn({ name: 'tenantId' })
     tenant: Tenant;
+
+    @Column({ nullable: true })
+    branchId: string;
+
+    @ManyToOne('Branch', { nullable: true })
+    @JoinColumn({ name: 'branchId' })
+    branch: any;
 }

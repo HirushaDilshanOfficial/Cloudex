@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsEnum, IsNotEmpty, MinLength, IsUUID } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsNotEmpty, MinLength, IsUUID, IsOptional } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class CreateUserDto {
@@ -23,4 +23,8 @@ export class CreateUserDto {
     @IsUUID()
     @IsNotEmpty()
     tenantId: string;
+
+    @IsUUID()
+    @IsOptional()
+    branchId?: string;
 }

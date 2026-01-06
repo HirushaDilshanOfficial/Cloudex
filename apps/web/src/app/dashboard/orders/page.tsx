@@ -28,6 +28,9 @@ interface Order {
         firstName: string;
         lastName: string;
     };
+    branch?: {
+        name: string;
+    };
 }
 
 interface DecodedToken {
@@ -106,6 +109,7 @@ export default function OrderHistoryPage() {
                                 <tr>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Order ID</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Branch</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Table</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Items</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -121,6 +125,9 @@ export default function OrderHistoryPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             {new Date(order.createdAt).toLocaleString()}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            {order.branch?.name || '-'}
                                         </td>
                                         <td className="px-6 py-4">
                                             {order.table ? (
@@ -198,6 +205,10 @@ export default function OrderHistoryPage() {
                                     <p className="font-medium">
                                         {selectedOrder.cashier ? `${selectedOrder.cashier.firstName} ${selectedOrder.cashier.lastName}` : 'N/A'}
                                     </p>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <p className="text-sm text-gray-500 mb-1">Branch</p>
+                                    <p className="font-medium">{selectedOrder.branch?.name || 'N/A'}</p>
                                 </div>
                             </div>
 

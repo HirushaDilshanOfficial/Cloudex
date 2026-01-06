@@ -33,6 +33,13 @@ export class Order extends BaseEntity {
     tenant: Tenant;
 
     @Column({ nullable: true })
+    branchId: string;
+
+    @ManyToOne('Branch', { nullable: true })
+    @JoinColumn({ name: 'branchId' })
+    branch: any;
+
+    @Column({ nullable: true })
     cashierId: string;
 
     @ManyToOne(() => User, { nullable: true })

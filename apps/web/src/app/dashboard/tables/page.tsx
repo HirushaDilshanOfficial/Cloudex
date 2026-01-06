@@ -12,6 +12,15 @@ interface Table {
     name: string;
     capacity: number;
     status: 'available' | 'occupied' | 'reserved';
+    branch?: {
+        id: string;
+        name: string;
+    };
+}
+
+interface Branch {
+    id: string;
+    name: string;
 }
 
 interface DecodedToken {
@@ -25,7 +34,9 @@ export default function TableManagementPage() {
     const [formData, setFormData] = useState({
         name: '',
         capacity: 4,
+        branchId: '',
     });
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [editingTable, setEditingTable] = useState<Table | null>(null);
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
@@ -54,9 +65,21 @@ export default function TableManagementPage() {
         }
     };
 
+    const fetchBranches = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/branches?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setBranches(response.data);
+        } catch (error) {
+            console.error('Failed to fetch branches', error);
+        }
+    };
+
     useEffect(() => {
         if (token && tenantId) {
             fetchTables();
+            fetchBranches();
         }
     }, [token, tenantId]);
 
@@ -79,8 +102,10 @@ export default function TableManagementPage() {
             }
             setShowModal(false);
             setEditingTable(null);
+            setShowModal(false);
+            setEditingTable(null);
             fetchTables();
-            setFormData({ name: '', capacity: 4 });
+            setFormData({ name: '', capacity: 4, branchId: '' });
         } catch (error) {
             console.error('Failed to save table', error);
             alert('Failed to save table');
@@ -92,6 +117,7 @@ export default function TableManagementPage() {
         setFormData({
             name: table.name,
             capacity: table.capacity,
+            branchId: table.branch?.id || '',
         });
         setShowModal(true);
     };
@@ -119,7 +145,7 @@ export default function TableManagementPage() {
                     <button
                         onClick={() => {
                             setEditingTable(null);
-                            setFormData({ name: '', capacity: 4 });
+                            setFormData({ name: '', capacity: 4, branchId: '' });
                             setShowModal(true);
                         }}
                         className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -158,6 +184,9 @@ export default function TableManagementPage() {
                                 <div>
                                     <h3 className="text-lg font-bold text-gray-900">{table.name}</h3>
                                     <p className="text-sm text-gray-500">{table.capacity} Seats</p>
+                                    {table.branch && (
+                                        <p className="text-xs text-gray-400 mt-1">{table.branch.name}</p>
+                                    )}
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase
@@ -205,6 +234,21 @@ export default function TableManagementPage() {
                                         min="1"
                                         required
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Branch</label>
+                                    <select
+                                        value={formData.branchId}
+                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                        className="w-full p-2 border rounded-lg mt-1"
+                                    >
+                                        <option value="">Select Branch (Optional)</option>
+                                        {branches.map((branch) => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="flex justify-end gap-2 mt-6">
                                     <button
