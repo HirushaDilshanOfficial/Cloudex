@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { TenantLayout } from '@/components/tenant/tenant-layout';
 import { useAuthStore } from '@/store/auth-store';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Plus, Trash2, Edit2, Armchair } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 
@@ -54,9 +54,7 @@ export default function TableManagementPage() {
 
     const fetchTables = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/tables?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/tables?tenantId=${tenantId}`);
             setTables(response.data);
         } catch (error) {
             console.error('Failed to fetch tables', error);
@@ -67,9 +65,7 @@ export default function TableManagementPage() {
 
     const fetchBranches = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/branches?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/branches?tenantId=${tenantId}`);
             setBranches(response.data);
         } catch (error) {
             console.error('Failed to fetch branches', error);
@@ -87,17 +83,13 @@ export default function TableManagementPage() {
         e.preventDefault();
         try {
             if (editingTable) {
-                await axios.patch(`http://localhost:3001/tables/${editingTable.id}`, {
+                await api.patch(`/tables/${editingTable.id}`, {
                     ...formData,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
                 });
             } else {
-                await axios.post('http://localhost:3001/tables', {
+                await api.post('/tables', {
                     ...formData,
                     tenantId,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
                 });
             }
             setShowModal(false);
@@ -125,12 +117,12 @@ export default function TableManagementPage() {
     const handleDeleteTable = async (id: string) => {
         if (!confirm('Are you sure you want to delete this table?')) return;
         try {
-            await axios.delete(`http://localhost:3001/tables/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/tables/${id}`);
             fetchTables();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete table', error);
+            const errorMessage = error.response?.data?.message || 'Failed to delete table';
+            alert(errorMessage);
         }
     };
 
@@ -228,8 +220,8 @@ export default function TableManagementPage() {
                                     <label className="block text-sm font-medium text-gray-700">Capacity</label>
                                     <input
                                         type="number"
-                                        value={formData.capacity}
-                                        onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                                        value={formData.capacity || ''}
+                                        onChange={(e) => setFormData({ ...formData, capacity: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                         className="w-full p-2 border rounded-lg mt-1"
                                         min="1"
                                         required

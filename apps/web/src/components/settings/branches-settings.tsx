@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Plus, Edit, Trash2, Store } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -21,9 +21,7 @@ export function BranchesSettings() {
 
     const fetchBranches = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/branches', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get('/branches');
             setBranches(response.data);
         } catch (error) {
             console.error('Failed to fetch branches', error);
@@ -42,13 +40,9 @@ export function BranchesSettings() {
         e.preventDefault();
         try {
             if (editingBranch) {
-                await axios.patch(`http://localhost:3001/branches/${editingBranch.id}`, formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.patch(`/branches/${editingBranch.id}`, formData);
             } else {
-                await axios.post('http://localhost:3001/branches', formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post('/branches', formData);
             }
             setShowModal(false);
             setEditingBranch(null);
@@ -62,9 +56,7 @@ export function BranchesSettings() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this branch?')) return;
         try {
-            await axios.delete(`http://localhost:3001/branches/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/branches/${id}`);
             fetchBranches();
         } catch (error) {
             console.error('Failed to delete branch', error);

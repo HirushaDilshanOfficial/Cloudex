@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { TenantLayout } from '@/components/tenant/tenant-layout';
 import { useAuthStore } from '@/store/auth-store';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Save, Building, DollarSign, Printer, Store } from 'lucide-react';
 import { BranchesSettings } from '@/components/settings/branches-settings';
 import { jwtDecode } from 'jwt-decode';
@@ -55,9 +55,7 @@ export default function SettingsPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/tenants/${tenantId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await api.get(`/tenants/${tenantId}`);
                 setSettings(response.data);
 
                 // Load printer IP from local storage
@@ -82,9 +80,7 @@ export default function SettingsPage() {
 
         try {
             // Save backend settings
-            await axios.put(`http://localhost:3001/tenants/${tenantId}`, settings, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put(`/tenants/${tenantId}`, settings);
 
             // Save local settings
             localStorage.setItem('printerIp', printerIp);
@@ -150,113 +146,113 @@ export default function SettingsPage() {
                         </button>
                     </div>
 
-                    <form onSubmit={handleSave} className="p-6">
-                        {activeTab === 'general' && (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
-                                    <input
-                                        type="text"
-                                        value={settings.name}
-                                        onChange={(e) => setSettings({ ...settings, name: e.target.value })}
-                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                    <textarea
-                                        value={settings.address || ''}
-                                        onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        rows={3}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                    <input
-                                        type="text"
-                                        value={settings.phone || ''}
-                                        onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'financial' && (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
-                                    <input
-                                        type="text"
-                                        value={settings.currency}
-                                        onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        placeholder="e.g. $, €, £"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tax Name</label>
-                                        <input
-                                            type="text"
-                                            value={settings.taxName}
-                                            onChange={(e) => setSettings({ ...settings, taxName: e.target.value })}
-                                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                            placeholder="e.g. VAT, GST"
-                                        />
+                    <div className="p-6">
+                        {activeTab !== 'branches' ? (
+                            <form onSubmit={handleSave}>
+                                {activeTab === 'general' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+                                            <input
+                                                type="text"
+                                                value={settings.name}
+                                                onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+                                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                            <textarea
+                                                value={settings.address || ''}
+                                                onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                rows={3}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                            <input
+                                                type="text"
+                                                value={settings.phone || ''}
+                                                onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
-                                        <input
-                                            type="number"
-                                            value={settings.taxRate}
-                                            onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) })}
-                                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                            step="0.01"
-                                            min="0"
-                                        />
+                                )}
+
+                                {activeTab === 'financial' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
+                                            <input
+                                                type="text"
+                                                value={settings.currency}
+                                                onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
+                                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                placeholder="e.g. $, €, £"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={settings.taxName}
+                                                    onChange={(e) => setSettings({ ...settings, taxName: e.target.value })}
+                                                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                    placeholder="e.g. VAT, GST"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                                                <input
+                                                    type="number"
+                                                    value={settings.taxRate}
+                                                    onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) })}
+                                                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                    step="0.01"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        )}
+                                )}
 
-                        {activeTab === 'hardware' && (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Printer IP</label>
-                                    <input
-                                        type="text"
-                                        value={printerIp}
-                                        onChange={(e) => setPrinterIp(e.target.value)}
-                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        placeholder="e.g. 192.168.1.200"
-                                    />
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        This setting is saved locally on this device.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                                {activeTab === 'hardware' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Default Printer IP</label>
+                                            <input
+                                                type="text"
+                                                value={printerIp}
+                                                onChange={(e) => setPrinterIp(e.target.value)}
+                                                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                placeholder="e.g. 192.168.1.200"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                This setting is saved locally on this device.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
-                        {activeTab === 'branches' && (
+                                <div className="mt-8 flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                                    >
+                                        <Save size={20} />
+                                        {saving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
                             <BranchesSettings />
                         )}
-
-                        {activeTab !== 'branches' && (
-                            <div className="mt-8 flex justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                                >
-                                    <Save size={20} />
-                                    {saving ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
-                        )}
-                    </form>
+                    </div>
                 </div>
             </div>
         </TenantLayout>

@@ -36,6 +36,8 @@ export default function KdsPage() {
     const router = useRouter();
     const [tenantId, setTenantId] = useState<string>('');
 
+    const [confirmModal, setConfirmModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
+
     useEffect(() => {
         if (token) {
             try {
@@ -113,6 +115,21 @@ export default function KdsPage() {
         }
     };
 
+    const handleReadyClick = (orderId: string) => {
+        setConfirmModal({ show: true, orderId });
+    };
+
+    const confirmReady = () => {
+        if (confirmModal.orderId) {
+            updateStatus(confirmModal.orderId, 'ready');
+            setConfirmModal({ show: false, orderId: null });
+        }
+    };
+
+    const cancelReady = () => {
+        setConfirmModal({ show: false, orderId: null });
+    };
+
     const handleLogout = () => {
         setToken('');
         router.push('/login');
@@ -167,7 +184,7 @@ export default function KdsPage() {
                             )}
                             {order.status === 'preparing' && (
                                 <button
-                                    onClick={() => updateStatus(order.id, 'ready')}
+                                    onClick={() => handleReadyClick(order.id)}
                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
                                 >
                                     <CheckCircle size={20} /> Ready
@@ -183,6 +200,29 @@ export default function KdsPage() {
                     </div>
                 )}
             </div>
+
+            {confirmModal.show && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-xl max-w-sm w-full border border-gray-700 shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 text-white">Complete Order?</h3>
+                        <p className="text-gray-300 mb-6">Are you sure this order is ready? It will be removed from the KDS.</p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={cancelReady}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmReady}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors"
+                            >
+                                OK, Complete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

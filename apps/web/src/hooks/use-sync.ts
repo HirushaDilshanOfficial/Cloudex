@@ -3,7 +3,9 @@ import { syncProducts, syncOfflineOrders } from '@/services/sync-service';
 
 export function useSync(tenantId: string) {
     useEffect(() => {
-        if (!tenantId) return;
+        // Ensure tenantId is a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!tenantId || !uuidRegex.test(tenantId)) return;
 
         // Initial sync
         syncProducts(tenantId);

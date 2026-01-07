@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { Trash2, Minus, Plus, Armchair } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import { useEffect, useState } from 'react';
@@ -23,6 +23,11 @@ export function CartSidebar() {
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         if (token) {
@@ -38,10 +43,12 @@ export function CartSidebar() {
     useEffect(() => {
         const fetchTables = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/tables?tenantId=${tenantId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setTables(response.data.filter((t: Table) => t.status === 'available'));
+                const response = await api.get(`/tables?tenantId=${tenantId}`);
+                const validTables = response.data.filter((t: Table) =>
+                    t.status === 'available' &&
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.id)
+                );
+                setTables(validTables);
             } catch (error) {
                 console.error('Failed to fetch tables', error);
             }
@@ -55,23 +62,27 @@ export function CartSidebar() {
     const handleCheckout = async () => {
         if (items.length === 0) return;
         setIsCheckingOut(true);
+        setIsCheckingOut(true);
         try {
-            await axios.post('http://localhost:3001/orders', {
+            await api.post('/orders', {
                 items: items.map(item => ({
                     productId: item.productId,
-                    quantity: item.quantity
+                    quantity: item.quantity,
+                    price: item.price || 0 // Fallback for stale cart items
                 })),
                 tenantId,
-                tableId: selectedTable || null,
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
+                tableId: selectedTable || undefined, // Send undefined instead of null for optional field
+                totalAmount: Number((total() * 1.1).toFixed(2)), // Include tax in total
             });
             clearCart();
             setSelectedTable('');
             alert('Order placed successfully!');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to place order', error);
-            alert('Failed to place order');
+            const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+            const errorDetails = JSON.stringify(error.response?.data || {}, null, 2);
+            console.log('FULL ERROR DETAILS:', errorDetails); // Explicit log for user to copy
+            alert(`Failed to place order: ${errorMessage}\nDetails: ${errorDetails}`);
         } finally {
             setIsCheckingOut(false);
         }
@@ -100,7 +111,11 @@ export function CartSidebar() {
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {items.length === 0 ? (
+                {!isMounted ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <p>Loading cart...</p>
+                    </div>
+                ) : items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                         <p>Cart is empty</p>
                     </div>
@@ -146,15 +161,15 @@ export function CartSidebar() {
                 <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-gray-600">
                         <span>Subtotal</span>
-                        <span>${total().toFixed(2)}</span>
+                        <span>${isMounted ? total().toFixed(2) : '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-gray-600">
                         <span>Tax (10%)</span>
-                        <span>${(total() * 0.1).toFixed(2)}</span>
+                        <span>${isMounted ? (total() * 0.1).toFixed(2) : '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-dashed border-gray-300">
                         <span>Total</span>
-                        <span>${(total() * 1.1).toFixed(2)}</span>
+                        <span>${isMounted ? (total() * 1.1).toFixed(2) : '0.00'}</span>
                     </div>
                 </div>
 

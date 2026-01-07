@@ -75,7 +75,7 @@ export default function OrderHistoryPage() {
     }, [token, tenantId]);
 
     const calculateTotal = (items: OrderItem[]) => {
-        return items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        return items.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
     };
 
     const getStatusColor = (status: string) => {
@@ -220,10 +220,10 @@ export default function OrderHistoryPage() {
                                             <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-sm">
                                                 {item.quantity}x
                                             </span>
-                                            <span className="font-medium text-gray-800">{item.product.name}</span>
+                                            <span className="font-medium text-gray-800">{item.product?.name || 'Unknown Product'}</span>
                                         </div>
                                         <span className="font-medium text-gray-900">
-                                            ${(item.product.price * item.quantity).toFixed(2)}
+                                            ${((item.product?.price || 0) * item.quantity).toFixed(2)}
                                         </span>
                                     </div>
                                 ))}
