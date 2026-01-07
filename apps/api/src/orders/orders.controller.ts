@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Query, Request, HttpException, HttpStatus } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -13,14 +13,28 @@ export class OrdersController {
 
     @Post()
     @Roles(UserRole.CASHIER, UserRole.MANAGER, UserRole.ADMIN)
-    create(@Body() createOrderDto: CreateOrderDto) {
-        return this.ordersService.create(createOrderDto);
+    async create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
+        console.log('OrdersController.create called');
+        try {
+            console.log('User from request:', req.user);
+            (createOrderDto as any).user = req.user;
+            return await this.ordersService.create(createOrderDto);
+        } catch (error) {
+            console.error('Error in OrdersController.create:', error);
+            // Re-throw as HttpException to expose message to client for debugging
+            throw new HttpException({
+                status: HttpStatus.INTERNAL_SERVER_ERROR,
+                error: 'Order creation failed',
+                message: error.message || 'Unknown error',
+                stack: error.stack // Optional: include stack trace if safe/needed
+            }, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Get()
-    @Roles(UserRole.MANAGER, UserRole.ADMIN)
-    findAll(@Query('tenantId') tenantId: string) {
-        return this.ordersService.findAll(tenantId);
+    @Roles(UserRole.MANAGER, UserRole.ADMIN, UserRole.CASHIER)
+    findAll(@Query('tenantId') tenantId: string, @Request() req) {
+        return this.ordersService.findAll(tenantId, req.user);
     }
 
     @Get(':id')

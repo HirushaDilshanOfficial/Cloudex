@@ -18,8 +18,12 @@ export class InventoryService {
         return this.ingredientRepository.save(ingredient);
     }
 
-    findAll(tenantId: string): Promise<Ingredient[]> {
-        return this.ingredientRepository.find({ where: { tenantId } });
+    findAll(tenantId: string, branchId?: string): Promise<Ingredient[]> {
+        const where: any = { tenantId };
+        if (branchId) {
+            where.branchId = branchId;
+        }
+        return this.ingredientRepository.find({ where, relations: ['branch'] });
     }
 
     async adjustStock(
@@ -28,8 +32,13 @@ export class InventoryService {
         type: StockMovementType,
         reason: string,
         tenantId: string,
+        branchId?: string,
     ): Promise<Ingredient> {
-        const ingredient = await this.ingredientRepository.findOne({ where: { id: ingredientId } });
+        const where: any = { id: ingredientId };
+        // Optionally enforce branch check if branchId is provided
+        // if (branchId) where.branchId = branchId; 
+
+        const ingredient = await this.ingredientRepository.findOne({ where });
         if (!ingredient) throw new Error('Ingredient not found');
 
         // Update current stock

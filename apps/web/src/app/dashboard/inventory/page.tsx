@@ -12,6 +12,15 @@ interface Ingredient {
     unit: string;
     currentStock: number;
     costPerUnit: number;
+    branch?: {
+        id: string;
+        name: string;
+    };
+}
+
+interface Branch {
+    id: string;
+    name: string;
 }
 
 export default function InventoryPage() {
@@ -19,14 +28,30 @@ export default function InventoryPage() {
     const [loading, setLoading] = useState(true);
     const token = useAuthStore((state) => state.token);
 
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [tenantId, setTenantId] = useState<string>('');
+
     useEffect(() => {
-        fetchIngredients();
-    }, []);
+        if (token) {
+            try {
+                const decoded: any = JSON.parse(atob(token.split('.')[1]));
+                setTenantId(decoded.tenantId);
+            } catch (error) {
+                console.error('Invalid token', error);
+            }
+        }
+    }, [token]);
+
+    useEffect(() => {
+        if (token && tenantId) {
+            fetchIngredients();
+            fetchBranches();
+        }
+    }, [token, tenantId]);
 
     const fetchIngredients = async () => {
         try {
-            // TODO: Get tenantId from context
-            const response = await axios.get('http://localhost:3001/inventory/ingredients?tenantId=default-tenant-id', {
+            const response = await axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setIngredients(response.data);
@@ -37,14 +62,25 @@ export default function InventoryPage() {
         }
     };
 
+    const fetchBranches = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/branches?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setBranches(response.data);
+        } catch (error) {
+            console.error('Failed to fetch branches', error);
+        }
+    };
+
     const [showModal, setShowModal] = useState(false);
-    const [newIngredient, setNewIngredient] = useState({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0 });
+    const [newIngredient, setNewIngredient] = useState({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
 
     const handleCreate = async () => {
         try {
             await axios.post('http://localhost:3001/inventory/ingredients', {
                 ...newIngredient,
-                tenantId: 'default-tenant-id',
+                tenantId,
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -120,6 +156,21 @@ export default function InventoryPage() {
                                     onChange={(e) => setNewIngredient({ ...newIngredient, currentStock: parseFloat(e.target.value) })}
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                                <select
+                                    className="w-full p-2 border rounded-lg"
+                                    value={newIngredient.branchId}
+                                    onChange={(e) => setNewIngredient({ ...newIngredient, branchId: e.target.value })}
+                                >
+                                    <option value="">Select Branch (Optional)</option>
+                                    {branches.map((branch) => (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="flex justify-end gap-2 mt-6">
                             <button
@@ -159,6 +210,7 @@ export default function InventoryPage() {
                             <th className="px-6 py-3 font-medium text-gray-500">Unit</th>
                             <th className="px-6 py-3 font-medium text-gray-500">Cost/Unit</th>
                             <th className="px-6 py-3 font-medium text-gray-500">Status</th>
+                            <th className="px-6 py-3 font-medium text-gray-500">Branch</th>
                             <th className="px-6 py-3 font-medium text-gray-500">Actions</th>
                         </tr>
                     </thead>
@@ -177,6 +229,9 @@ export default function InventoryPage() {
                                     ) : (
                                         <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">In Stock</span>
                                     )}
+                                </td>
+                                <td className="px-6 py-4 text-gray-500">
+                                    {ingredient.branch?.name || '-'}
                                 </td>
                                 <td className="px-6 py-4">
                                     <button className="text-primary hover:underline text-sm font-medium">Adjust</button>

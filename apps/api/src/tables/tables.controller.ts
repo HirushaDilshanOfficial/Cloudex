@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Request } from '@nestjs/common';
 import { TablesService } from './tables.service';
 import { CreateTableDto, UpdateTableDto } from './dto/create-table.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,8 +18,9 @@ export class TablesController {
     }
 
     @Get()
-    findAll(@Query('tenantId') tenantId: string) {
-        return this.tablesService.findAll(tenantId);
+    @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+    findAll(@Query('tenantId') tenantId: string, @Request() req) {
+        return this.tablesService.findAll(tenantId, req.user?.branchId);
     }
 
     @Get(':id')

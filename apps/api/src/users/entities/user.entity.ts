@@ -36,4 +36,11 @@ export class User extends BaseEntity {
     @ManyToOne(() => Tenant, (tenant) => tenant.users)
     @JoinColumn({ name: 'tenantId' })
     tenant: Tenant;
+
+    @Column({ nullable: true })
+    branchId: string;
+
+    @ManyToOne('Branch', { nullable: true })
+    @JoinColumn({ name: 'branchId' })
+    branch: any;
 }

@@ -9,10 +9,12 @@ export class CreateOrderDto {
 
     @IsString()
     @IsOptional()
+    @IsUUID()
     tableId?: string;
 
-    @IsArray()
+    @IsString()
     @IsOptional()
+    @IsUUID()
     cashierId?: string;
 
     @IsArray()

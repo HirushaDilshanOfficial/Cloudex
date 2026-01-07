@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -12,24 +12,27 @@ export class InventoryController {
 
     @Post('ingredients')
     @Roles(UserRole.MANAGER, UserRole.ADMIN)
-    createIngredient(@Body() data: any) {
+    createIngredient(@Body() data: any, @Request() req) {
+        data.branchId = req.user?.branchId;
         return this.inventoryService.createIngredient(data);
     }
 
     @Get('ingredients')
-    findAll(@Query('tenantId') tenantId: string) {
-        return this.inventoryService.findAll(tenantId);
+    @Roles(UserRole.MANAGER, UserRole.ADMIN, UserRole.KITCHEN)
+    findAll(@Query('tenantId') tenantId: string, @Request() req) {
+        return this.inventoryService.findAll(tenantId, req.user?.branchId);
     }
 
     @Post('stock')
     @Roles(UserRole.MANAGER, UserRole.ADMIN)
-    adjustStock(@Body() body: any) {
+    adjustStock(@Body() body: any, @Request() req) {
         return this.inventoryService.adjustStock(
             body.ingredientId,
             body.quantity,
             body.type,
             body.reason,
             body.tenantId,
+            req.user?.branchId,
         );
     }
 }

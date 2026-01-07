@@ -28,6 +28,9 @@ interface Order {
         firstName: string;
         lastName: string;
     };
+    branch?: {
+        name: string;
+    };
 }
 
 interface DecodedToken {
@@ -72,7 +75,7 @@ export default function OrderHistoryPage() {
     }, [token, tenantId]);
 
     const calculateTotal = (items: OrderItem[]) => {
-        return items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        return items.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
     };
 
     const getStatusColor = (status: string) => {
@@ -106,6 +109,7 @@ export default function OrderHistoryPage() {
                                 <tr>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Order ID</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+                                    <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Branch</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Table</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Items</th>
                                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -121,6 +125,9 @@ export default function OrderHistoryPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             {new Date(order.createdAt).toLocaleString()}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            {order.branch?.name || '-'}
                                         </td>
                                         <td className="px-6 py-4">
                                             {order.table ? (
@@ -199,6 +206,10 @@ export default function OrderHistoryPage() {
                                         {selectedOrder.cashier ? `${selectedOrder.cashier.firstName} ${selectedOrder.cashier.lastName}` : 'N/A'}
                                     </p>
                                 </div>
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <p className="text-sm text-gray-500 mb-1">Branch</p>
+                                    <p className="font-medium">{selectedOrder.branch?.name || 'N/A'}</p>
+                                </div>
                             </div>
 
                             <h3 className="font-bold text-lg mb-4">Items</h3>
@@ -209,10 +220,10 @@ export default function OrderHistoryPage() {
                                             <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-sm">
                                                 {item.quantity}x
                                             </span>
-                                            <span className="font-medium text-gray-800">{item.product.name}</span>
+                                            <span className="font-medium text-gray-800">{item.product?.name || 'Unknown Product'}</span>
                                         </div>
                                         <span className="font-medium text-gray-900">
-                                            ${(item.product.price * item.quantity).toFixed(2)}
+                                            ${((item.product?.price || 0) * item.quantity).toFixed(2)}
                                         </span>
                                     </div>
                                 ))}

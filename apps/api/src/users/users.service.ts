@@ -34,12 +34,16 @@ export class UsersService {
         }
     }
 
-    findAll(tenantId: string): Promise<User[]> {
-        return this.usersRepository.find({ where: { tenantId } });
+    findAll(tenantId: string, branchId?: string): Promise<User[]> {
+        const where: any = { tenantId };
+        if (branchId) {
+            where.branchId = branchId;
+        }
+        return this.usersRepository.find({ where, relations: ['branch'] });
     }
 
     findOne(id: string): Promise<User | null> {
-        return this.usersRepository.findOne({ where: { id } });
+        return this.usersRepository.findOne({ where: { id }, relations: ['branch'] });
     }
 
     async remove(id: string): Promise<void> {
