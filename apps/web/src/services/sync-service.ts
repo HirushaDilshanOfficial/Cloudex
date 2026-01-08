@@ -17,7 +17,11 @@ export const syncProducts = async (tenantId: string) => {
         // 2. Update IndexedDB
         await db.transaction('rw', db.products, async () => {
             await db.products.where({ tenantId }).delete(); // Clear old cache for this tenant
-            await db.products.bulkPut(products);
+            const sanitizedProducts = products.map(p => ({
+                ...p,
+                price: Number(p.price)
+            }));
+            await db.products.bulkPut(sanitizedProducts);
         });
 
         console.log(`Synced ${products.length} products for tenant ${tenantId}`);

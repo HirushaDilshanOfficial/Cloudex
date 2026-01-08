@@ -61,11 +61,21 @@ export function CartSidebar() {
 
     const handleCheckout = async () => {
         if (items.length === 0) return;
-        setIsCheckingOut(true);
+
+        // Filter out invalid items (self-healing)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const validItems = items.filter(item => uuidRegex.test(item.productId));
+
+        if (validItems.length === 0) {
+            alert('Cart contained only invalid items and has been cleared. Please add items again.');
+            clearCart();
+            return;
+        }
+
         setIsCheckingOut(true);
         try {
             await api.post('/orders', {
-                items: items.map(item => ({
+                items: validItems.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
                     price: item.price || 0 // Fallback for stale cart items
@@ -80,9 +90,16 @@ export function CartSidebar() {
         } catch (error: any) {
             console.error('Failed to place order', error);
             const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
-            const errorDetails = JSON.stringify(error.response?.data || {}, null, 2);
-            console.log('FULL ERROR DETAILS:', errorDetails); // Explicit log for user to copy
-            alert(`Failed to place order: ${errorMessage}\nDetails: ${errorDetails}`);
+
+            // Auto-clear cart if server rejects due to bad data
+            if (error.response?.status === 400) {
+                alert(`Order failed due to invalid data. Your cart has been cleared to fix the issue. Please try adding items again.\nError: ${errorMessage}`);
+                clearCart();
+            } else {
+                const errorDetails = JSON.stringify(error.response?.data || {}, null, 2);
+                console.log('FULL ERROR DETAILS:', errorDetails);
+                alert(`Failed to place order: ${errorMessage}\nDetails: ${errorDetails}`);
+            }
         } finally {
             setIsCheckingOut(false);
         }

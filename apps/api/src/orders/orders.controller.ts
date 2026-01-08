@@ -21,13 +21,12 @@ export class OrdersController {
             return await this.ordersService.create(createOrderDto);
         } catch (error) {
             console.error('Error in OrdersController.create:', error);
-            // Re-throw as HttpException to expose message to client for debugging
+            const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
             throw new HttpException({
-                status: HttpStatus.INTERNAL_SERVER_ERROR,
+                status: status,
                 error: 'Order creation failed',
                 message: error.message || 'Unknown error',
-                stack: error.stack // Optional: include stack trace if safe/needed
-            }, HttpStatus.INTERNAL_SERVER_ERROR);
+            }, status);
         }
     }
 

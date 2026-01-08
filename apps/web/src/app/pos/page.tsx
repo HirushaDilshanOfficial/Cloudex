@@ -9,22 +9,53 @@ import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 
 import { useSync } from '@/hooks/use-sync';
+import { db } from '@/lib/db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { jwtDecode } from 'jwt-decode';
 
-// Mock data for development
-const MOCK_PRODUCTS = [
-    { id: '1', name: 'Classic Burger', price: 8.99, category: 'Burgers' },
-    { id: '2', name: 'Cheese Pizza', price: 12.50, category: 'Pizza' },
-    { id: '3', name: 'French Fries', price: 3.99, category: 'Sides' },
-    { id: '4', name: 'Coca Cola', price: 1.99, category: 'Drinks' },
-    { id: '5', name: 'Chicken Wings', price: 9.99, category: 'Starters' },
-    { id: '6', name: 'Caesar Salad', price: 7.50, category: 'Salads' },
-];
+
 
 export default function POSPage() {
-    // TODO: Get tenantId from auth context
-    useSync('default-tenant-id');
+    const token = useAuthStore((state) => state.token);
     const setToken = useAuthStore((state) => state.setToken);
     const router = useRouter();
+    const [tenantId, setTenantId] = React.useState<string>('');
+    const [selectedCategory, setSelectedCategory] = React.useState('All');
+
+    React.useEffect(() => {
+        if (token) {
+            try {
+                const decoded: any = jwtDecode(token);
+                setTenantId(decoded.tenantId);
+            } catch (error) {
+                console.error('Invalid token', error);
+            }
+        }
+    }, [token]);
+
+    // Sync data in background
+    useSync(tenantId);
+
+    // Fetch products from local DB (reactive)
+    const products = useLiveQuery(
+        () => {
+            if (!tenantId) return [];
+            return db.products.where({ tenantId }).toArray();
+        },
+        [tenantId]
+    ) || [];
+
+    // Extract unique categories
+    const categories = React.useMemo(() => {
+        const cats = new Set(products.map((p: any) => p.category || 'Uncategorized'));
+        return ['All', ...Array.from(cats)];
+    }, [products]);
+
+    // Filter products
+    const filteredProducts = React.useMemo(() => {
+        if (selectedCategory === 'All') return products;
+        return products.filter((p: any) => (p.category || 'Uncategorized') === selectedCategory);
+    }, [products, selectedCategory]);
 
     const handleLogout = () => {
         setToken('');
@@ -45,10 +76,14 @@ export default function POSPage() {
                     </button>
                 </div>
                 <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                    {['All', 'Burgers', 'Pizza', 'Sides', 'Drinks', 'Starters', 'Salads'].map((cat) => (
+                    {categories.map((cat: string) => (
                         <button
                             key={cat}
-                            className="px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-primary hover:text-white hover:border-primary transition-all whitespace-nowrap"
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-4 py-2 rounded-full border transition-all whitespace-nowrap ${selectedCategory === cat
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-primary/10 hover:border-primary'
+                                }`}
                         >
                             {cat}
                         </button>
@@ -57,9 +92,14 @@ export default function POSPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {MOCK_PRODUCTS.map((product) => (
+                {filteredProducts.map((product: any) => (
                     <ProductCard key={product.id} product={product} />
                 ))}
+                {filteredProducts.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-gray-500">
+                        <p>No products found in this category.</p>
+                    </div>
+                )}
             </div>
         </PosLayout>
     );

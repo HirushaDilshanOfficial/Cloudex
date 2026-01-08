@@ -43,6 +43,8 @@ export default function OrderHistoryPage() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
 
     useEffect(() => {
         if (token) {
@@ -88,13 +90,45 @@ export default function OrderHistoryPage() {
         }
     };
 
+    const filteredOrders = orders.filter(order => {
+        const matchesSearch =
+            order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.table?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.branch?.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
+
+        return matchesSearch && matchesStatus;
+    });
+
     return (
         <TenantLayout>
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Order History</h1>
                         <p className="text-gray-500">View and manage past orders</p>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <input
+                            type="text"
+                            placeholder="Search orders..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary flex-1 sm:w-64"
+                        />
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
                 </div>
 
@@ -118,7 +152,7 @@ export default function OrderHistoryPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {orders.map((order) => (
+                                {filteredOrders.map((order) => (
                                     <tr key={order.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 font-mono text-sm text-gray-600">
                                             #{order.id.slice(0, 8)}
@@ -161,9 +195,9 @@ export default function OrderHistoryPage() {
                                 ))}
                             </tbody>
                         </table>
-                        {orders.length === 0 && (
+                        {filteredOrders.length === 0 && (
                             <div className="p-12 text-center text-gray-500">
-                                No orders found
+                                No orders found matching your filters
                             </div>
                         )}
                     </div>
