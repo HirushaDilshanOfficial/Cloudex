@@ -24,6 +24,13 @@ export class OrdersService {
     ) { }
 
     async create(createOrderDto: CreateOrderDto): Promise<Order> {
+        const fs = require('fs');
+        try {
+            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/apps/api/debug_entry.json', JSON.stringify(createOrderDto, null, 2));
+        } catch (e) {
+            console.error('Failed to write debug file', e);
+        }
+
         console.log('Creating order with DTO:', JSON.stringify(createOrderDto));
         const { items, tenantId, tableId, cashierId, totalAmount } = createOrderDto;
         const user = (createOrderDto as any).user;
@@ -38,6 +45,19 @@ export class OrdersService {
         }
         if (cashierId && !uuidRegex.test(cashierId)) {
             throw new BadRequestException(`Invalid cashierId: ${cashierId}. Must be a UUID.`);
+        } else if (!cashierId && user?.userId && !uuidRegex.test(user.userId)) {
+            // If cashierId is not in DTO, we might want to use user.userId, but if it's invalid, we should warn/block
+            console.warn(`Invalid userId from token: ${user.userId}. Cannot set as cashierId.`);
+            // We don't set cashierId if it's invalid
+        }
+
+        // Validate items
+        if (items && items.length > 0) {
+            for (const item of items) {
+                if (!uuidRegex.test(item.productId)) {
+                    throw new BadRequestException(`Invalid productId: ${item.productId}. Must be a UUID.`);
+                }
+            }
         }
 
         let branchId = user?.branchId;
@@ -55,6 +75,14 @@ export class OrdersService {
                 status: OrderStatus.PENDING,
                 branchId,
             });
+
+            console.log('Attempting to save order with data:', JSON.stringify({
+                tenantId,
+                tableId,
+                cashierId,
+                branchId,
+                totalAmount
+            }));
 
             console.log('Saving order header...');
             const savedOrder = await this.ordersRepository.save(order);
@@ -78,6 +106,10 @@ export class OrdersService {
                 if (recipe) {
                     console.log(`Found recipe for product ${item.productId}`);
                     for (const recipeItem of recipe.items) {
+                        if (!uuidRegex.test(recipeItem.ingredientId)) {
+                            console.warn(`Skipping inventory adjustment for invalid ingredientId: ${recipeItem.ingredientId}`);
+                            continue;
+                        }
                         try {
                             await this.inventoryService.adjustStock(
                                 recipeItem.ingredientId,
@@ -109,6 +141,17 @@ export class OrdersService {
             return fullOrder;
         } catch (error) {
             console.error('Error creating order:', error);
+            // Write debug info to file
+            const fs = require('fs');
+            const debugData = {
+                timestamp: new Date().toISOString(),
+                error: error.message,
+                stack: error.stack,
+                dto: createOrderDto,
+                user: user,
+                sanitizedBranchId: branchId
+            };
+            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/debug_order_error.json', JSON.stringify(debugData, null, 2));
             throw error;
         }
     }

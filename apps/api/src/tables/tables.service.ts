@@ -43,7 +43,7 @@ export class TablesService {
         if (updateTableDto.branchId === '') {
             (updateTableDto as any).branchId = null;
         }
-        await this.tablesRepository.update(id, updateTableDto);
+        await this.tablesRepository.update(id, updateTableDto as any);
         return this.findOne(id);
     }
 

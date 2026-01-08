@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 <p className="text-sm text-gray-500 mt-1">{product.category}</p>
             </div>
             <div className="flex justify-between items-center mt-4">
-                <span className="font-bold text-xl text-primary">${product.price.toFixed(2)}</span>
+                <span className="font-bold text-xl text-primary">${Number(product.price).toFixed(2)}</span>
                 <button className="p-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors">
                     <Plus size={20} />
                 </button>

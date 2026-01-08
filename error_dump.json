@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-08T03:24:25.580Z",
+  "path": "/products/b9b3ad95-9c10-4f63-8cae-1bac8b5920eb",
+  "method": "DELETE",
+  "user": {
+    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
+    "email": "admin@gmail.com",
+    "role": "admin",
+    "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
+    "branchId": null
+  },
+  "error": {
+    "message": "update or delete on table \"products\" violates foreign key constraint \"FK_cdb99c05982d5191ac8465ac010\" on table \"order_items\"",
+    "stack": "QueryFailedError: update or delete on table \"products\" violates foreign key constraint \"FK_cdb99c05982d5191ac8465ac010\" on table \"order_items\"\n    at PostgresQueryRunner.query (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/driver/src/driver/postgres/PostgresQueryRunner.ts:325:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async DeleteQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/DeleteQueryBuilder.ts:77:33)\n    at async ProductsService.remove (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/products/products.service.ts:33:9)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
+    "name": "QueryFailedError"
+  }
+}
