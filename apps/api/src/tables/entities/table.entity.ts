@@ -23,6 +23,9 @@ export class Table extends BaseEntity {
     })
     status: TableStatus;
 
+    @Column({ default: false })
+    isArchived: boolean;
+
     @Column()
     tenantId: string;
 

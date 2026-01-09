@@ -34,6 +34,28 @@ export class TablesController {
         return this.tablesService.update(id, updateTableDto);
     }
 
+    @Patch(':id/status')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+    updateStatus(@Param('id') id: string, @Body('status') status: string) {
+        return this.tablesService.updateStatus(id, status);
+    }
+
+    @Patch(':id/archive')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    archive(@Param('id') id: string) {
+        console.log(`Archiving table ${id}`);
+        return this.tablesService.archive(id);
+    }
+
+    @Delete('bulk-cleanup')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    cleanup(@Query('tenantId') tenantId: string, @Request() req) {
+        console.log('Hit bulk-cleanup endpoint');
+        // Use tenantId from token if not provided in query (for safety)
+        const targetTenantId = req.user?.tenantId || tenantId;
+        return this.tablesService.cleanup(targetTenantId);
+    }
+
     @Delete(':id')
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
     remove(@Param('id') id: string) {

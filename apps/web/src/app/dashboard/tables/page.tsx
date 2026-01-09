@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Plus, Trash2, Edit2, Armchair } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
+import toast from 'react-hot-toast';
 
 interface Table {
     id: string;
@@ -98,9 +99,10 @@ export default function TableManagementPage() {
             setEditingTable(null);
             fetchTables();
             setFormData({ name: '', capacity: 4, branchId: '' });
+            toast.success(editingTable ? 'Table updated successfully' : 'Table created successfully');
         } catch (error) {
             console.error('Failed to save table', error);
-            alert('Failed to save table');
+            toast.error('Failed to save table');
         }
     };
 
@@ -122,7 +124,22 @@ export default function TableManagementPage() {
         } catch (error: any) {
             console.error('Failed to delete table', error);
             const errorMessage = error.response?.data?.message || 'Failed to delete table';
-            alert(errorMessage);
+
+            // Check if error suggests archiving (based on our backend logic)
+            if (errorMessage.includes('archive')) {
+                if (confirm('This table has existing orders and cannot be deleted. Would you like to archive it instead? Archived tables will be hidden.')) {
+                    try {
+                        await api.patch(`/tables/${id}/archive`);
+                        toast.success('Table archived successfully');
+                        fetchTables();
+                    } catch (archiveError) {
+                        console.error('Failed to archive table', archiveError);
+                        toast.error('Failed to archive table');
+                    }
+                }
+            } else {
+                toast.error(errorMessage);
+            }
         }
     };
 
@@ -143,6 +160,23 @@ export default function TableManagementPage() {
                         className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                     >
                         <Plus size={20} /> Add Table
+                    </button>
+                    <button
+                        onClick={async () => {
+                            if (confirm('Are you sure you want to delete ALL tables? Tables with orders will be archived.')) {
+                                try {
+                                    const res = await api.delete(`/tables/bulk-cleanup?tenantId=${tenantId}`);
+                                    toast.success(`Cleanup complete: ${res.data.deleted} deleted, ${res.data.archived} archived`);
+                                    fetchTables();
+                                } catch (e) {
+                                    console.error(e);
+                                    toast.error('Cleanup failed');
+                                }
+                            }
+                        }}
+                        className="ml-2 bg-red-100 text-red-600 hover:bg-red-200 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    >
+                        <Trash2 size={20} /> Cleanup All
                     </button>
                 </div>
 
