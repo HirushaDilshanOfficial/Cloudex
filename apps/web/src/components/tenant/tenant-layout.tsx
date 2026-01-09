@@ -59,6 +59,10 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                                 <Utensils size={20} />
                                 <span>Menu</span>
                             </Link>
+                            <Link href="/dashboard/customers" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
+                                <Users size={20} />
+                                <span className="font-medium">Customers</span>
+                            </Link>
                         </>
                     )}
                     {role === 'admin' && (

@@ -1,17 +1,10 @@
 {
-  "timestamp": "2026-01-08T03:24:25.580Z",
-  "path": "/products/b9b3ad95-9c10-4f63-8cae-1bac8b5920eb",
-  "method": "DELETE",
-  "user": {
-    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
-    "email": "admin@gmail.com",
-    "role": "admin",
-    "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
-    "branchId": null
-  },
+  "timestamp": "2026-01-08T18:14:54.953Z",
+  "path": "/customers?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
+  "method": "GET",
   "error": {
-    "message": "update or delete on table \"products\" violates foreign key constraint \"FK_cdb99c05982d5191ac8465ac010\" on table \"order_items\"",
-    "stack": "QueryFailedError: update or delete on table \"products\" violates foreign key constraint \"FK_cdb99c05982d5191ac8465ac010\" on table \"order_items\"\n    at PostgresQueryRunner.query (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/driver/src/driver/postgres/PostgresQueryRunner.ts:325:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async DeleteQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/DeleteQueryBuilder.ts:77:33)\n    at async ProductsService.remove (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/products/products.service.ts:33:9)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
-    "name": "QueryFailedError"
+    "message": "Cannot GET /customers?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
+    "stack": "NotFoundException: Cannot GET /customers?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53\n    at callback (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/routes-resolver.js:77:19)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:23\n    at Layer.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/lib/layer.js:152:17)\n    at trimPrefix (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:342:13)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:297:9\n    at processParams (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:582:12)\n    at next (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:291:5)\n    at read (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/body-parser/lib/read.js:54:5)\n    at urlencodedParser (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/body-parser/lib/types/urlencoded.js:58:5)\n    at Layer.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/lib/layer.js:152:17)",
+    "name": "NotFoundException"
   }
 }

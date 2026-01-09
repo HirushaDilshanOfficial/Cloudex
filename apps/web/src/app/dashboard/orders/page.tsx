@@ -31,6 +31,11 @@ interface Order {
     branch?: {
         name: string;
     };
+    branch?: {
+        name: string;
+    };
+    orderNumber?: string;
+    orderType?: 'dining' | 'takeaway';
 }
 
 interface DecodedToken {
@@ -93,6 +98,7 @@ export default function OrderHistoryPage() {
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (order.orderNumber && order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
             order.table?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             order.branch?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -155,7 +161,14 @@ export default function OrderHistoryPage() {
                                 {filteredOrders.map((order) => (
                                     <tr key={order.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 font-mono text-sm text-gray-600">
-                                            #{order.id.slice(0, 8)}
+                                            <div className="flex flex-col">
+                                                <span>{order.orderNumber || `#${order.id.slice(0, 8)}`}</span>
+                                                {order.orderType && (
+                                                    <span className={`text-[10px] uppercase font-bold tracking-wider ${order.orderType === 'takeaway' ? 'text-orange-600' : 'text-blue-600'}`}>
+                                                        {order.orderType}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             {new Date(order.createdAt).toLocaleString()}
@@ -209,7 +222,15 @@ export default function OrderHistoryPage() {
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
-                                    <p className="text-gray-500">#{selectedOrder.id}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-gray-500">{selectedOrder.orderNumber || `#${selectedOrder.id}`}</p>
+                                        {selectedOrder.orderType && (
+                                            <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${selectedOrder.orderType === 'takeaway' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                {selectedOrder.orderType}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setSelectedOrder(null)}

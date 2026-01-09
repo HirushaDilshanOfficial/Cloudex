@@ -21,8 +21,9 @@ export class KdsController {
     updateStatus(
         @Param('id') id: string,
         @Body('status') status: any,
-        @Body('tenantId') tenantId: string
+        @Body('tenantId') tenantId: string,
+        @Body('reason') reason?: string
     ) {
-        return this.kdsService.updateOrderStatus(id, status, tenantId);
+        return this.kdsService.updateOrderStatus(id, status, tenantId, reason);
     }
 }

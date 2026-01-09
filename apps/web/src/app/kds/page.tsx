@@ -22,6 +22,9 @@ interface Order {
     items: OrderItem[];
     createdAt: string;
     tenantId: string;
+    tenantId: string;
+    orderNumber?: string;
+    orderType?: 'dining' | 'takeaway';
 }
 
 interface DecodedToken {
@@ -37,6 +40,8 @@ export default function KdsPage() {
     const [tenantId, setTenantId] = useState<string>('');
 
     const [confirmModal, setConfirmModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
+    const [cancelModal, setCancelModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
+    const [cancellationReason, setCancellationReason] = useState('');
 
     useEffect(() => {
         if (token) {
@@ -98,14 +103,14 @@ export default function KdsPage() {
         }
     }, [token, tenantId]);
 
-    const updateStatus = async (orderId: string, status: string) => {
+    const updateStatus = async (orderId: string, status: string, reason?: string) => {
         try {
-            await axios.put(`http://localhost:3001/kds/orders/${orderId}/status`, { status, tenantId }, {
+            await axios.put(`http://localhost:3001/kds/orders/${orderId}/status`, { status, tenantId, reason }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Optimistic update
             setOrders((prev) => {
-                if (status === 'ready') {
+                if (status === 'ready' || status === 'cancelled') {
                     return prev.filter(o => o.id !== orderId);
                 }
                 return prev.map(o => o.id === orderId ? { ...o, status: status as any } : o);
@@ -119,6 +124,11 @@ export default function KdsPage() {
         setConfirmModal({ show: true, orderId });
     };
 
+    const handleCancelClick = (orderId: string) => {
+        setCancelModal({ show: true, orderId });
+        setCancellationReason('');
+    };
+
     const confirmReady = () => {
         if (confirmModal.orderId) {
             updateStatus(confirmModal.orderId, 'ready');
@@ -126,8 +136,20 @@ export default function KdsPage() {
         }
     };
 
-    const cancelReady = () => {
+    const confirmCancel = () => {
+        if (cancelModal.orderId) {
+            if (!cancellationReason.trim()) {
+                alert('Please enter a cancellation reason');
+                return;
+            }
+            updateStatus(cancelModal.orderId, 'cancelled', cancellationReason);
+            setCancelModal({ show: false, orderId: null });
+        }
+    };
+
+    const closeModals = () => {
         setConfirmModal({ show: false, orderId: null });
+        setCancelModal({ show: false, orderId: null });
     };
 
     const handleLogout = () => {
@@ -154,10 +176,18 @@ export default function KdsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {orders.map((order) => (
-                    <div key={order.id} className={`bg-gray-800 rounded-xl overflow-hidden border-l-4 ${order.status === 'preparing' ? 'border-yellow-500' : 'border-blue-500'}`}>
+                    <div key={order.id} className={`bg-gray-800 rounded-xl overflow-hidden border-l-4 ${order.status === 'preparing' ? 'border-yellow-500' : 'border-blue-500'} relative group`}>
                         <div className="p-4 border-b border-gray-700 flex justify-between items-start">
                             <div>
-                                <h3 className="font-bold text-lg">Order #{order.id.slice(0, 8)}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-lg">{order.orderNumber || `Order #${order.id.slice(0, 8)}`}</h3>
+                                    {order.orderType && (
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${order.orderType === 'takeaway' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'
+                                            }`}>
+                                            {order.orderType}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
                             </div>
                             <div className={`px-2 py-1 rounded text-xs font-bold uppercase ${order.status === 'preparing' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-blue-500/20 text-blue-500'}`}>
@@ -175,12 +205,21 @@ export default function KdsPage() {
 
                         <div className="p-4 bg-gray-700/50 flex gap-2">
                             {order.status === 'pending' && (
-                                <button
-                                    onClick={() => updateStatus(order.id, 'preparing')}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-                                >
-                                    <PlayCircle size={20} /> Start
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => handleCancelClick(order.id)}
+                                        className="bg-red-600/20 hover:bg-red-600/40 text-red-500 p-3 rounded-lg font-bold transition-colors"
+                                        title="Cancel Order"
+                                    >
+                                        <LogOut size={20} className="rotate-180" />
+                                    </button>
+                                    <button
+                                        onClick={() => updateStatus(order.id, 'preparing')}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <PlayCircle size={20} /> Start
+                                    </button>
+                                </>
                             )}
                             {order.status === 'preparing' && (
                                 <button
@@ -201,6 +240,7 @@ export default function KdsPage() {
                 )}
             </div>
 
+            {/* Ready Confirmation Modal */}
             {confirmModal.show && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
                     <div className="bg-gray-800 p-6 rounded-xl max-w-sm w-full border border-gray-700 shadow-2xl">
@@ -208,7 +248,7 @@ export default function KdsPage() {
                         <p className="text-gray-300 mb-6">Are you sure this order is ready? It will be removed from the KDS.</p>
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={cancelReady}
+                                onClick={closeModals}
                                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                             >
                                 Cancel
@@ -218,6 +258,37 @@ export default function KdsPage() {
                                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors"
                             >
                                 OK, Complete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Order Modal */}
+            {cancelModal.show && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-xl max-w-sm w-full border border-gray-700 shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 text-white text-red-500">Cancel Order?</h3>
+                        <p className="text-gray-300 mb-4">Please provide a reason for cancellation.</p>
+                        <textarea
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white mb-6 focus:outline-none focus:border-red-500"
+                            rows={3}
+                            placeholder="e.g. Out of stock, Customer changed mind..."
+                            value={cancellationReason}
+                            onChange={(e) => setCancellationReason(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={closeModals}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={confirmCancel}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Confirm Cancel
                             </button>
                         </div>
                     </div>

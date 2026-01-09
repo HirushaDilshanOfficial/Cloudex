@@ -8,7 +8,10 @@ import { EventsGateway } from '../events/events.gateway';
 import { InventoryService } from '../inventory/inventory.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { StockMovementType } from '../inventory/entities/stock-movement.entity';
+import { StockMovementType } from '../inventory/entities/stock-movement.entity';
 import { KdsGateway } from '../kds/kds.gateway';
+import { TablesService } from '../tables/tables.service';
+import { TableStatus } from '../tables/entities/table.entity';
 
 @Injectable()
 export class OrdersService {
@@ -20,7 +23,9 @@ export class OrdersService {
         private eventsGateway: EventsGateway,
         private inventoryService: InventoryService,
         private recipesService: RecipesService,
+        private recipesService: RecipesService,
         private kdsGateway: KdsGateway,
+        private tablesService: TablesService,
     ) { }
 
     async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -67,6 +72,10 @@ export class OrdersService {
         }
 
         try {
+            // Generate sequential order number
+            const orderCount = await this.ordersRepository.count({ where: { tenantId } });
+            const orderNumber = `ORD-${(orderCount + 1).toString().padStart(4, '0')}`;
+
             const order = this.ordersRepository.create({
                 tenantId,
                 tableId,
@@ -74,6 +83,9 @@ export class OrdersService {
                 totalAmount,
                 status: OrderStatus.PENDING,
                 branchId,
+                orderNumber,
+                orderType: createOrderDto.orderType || 'dining',
+                customerId: createOrderDto.customerId,
             });
 
             console.log('Attempting to save order with data:', JSON.stringify({
@@ -136,6 +148,15 @@ export class OrdersService {
             } catch (gwError) {
                 console.error('Gateway emit failed', gwError);
                 // Don't fail the order if gateway fails
+            }
+
+            // Update table status if dining order
+            if (tableId && (!createOrderDto.orderType || createOrderDto.orderType === 'dining')) {
+                try {
+                    await this.tablesService.updateStatus(tableId, TableStatus.OCCUPIED);
+                } catch (tableError) {
+                    console.error('Failed to update table status', tableError);
+                }
             }
 
             return fullOrder;

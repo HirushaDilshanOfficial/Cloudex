@@ -24,4 +24,12 @@ export class CreateOrderDto {
 
     @IsNumber()
     totalAmount: number;
+
+    @IsOptional()
+    @IsString()
+    customerId?: string;
+
+    @IsOptional()
+    @IsEnum(OrderType)
+    orderType?: OrderType;
 }

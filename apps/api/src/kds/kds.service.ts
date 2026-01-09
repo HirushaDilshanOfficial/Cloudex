@@ -23,8 +23,13 @@ export class KdsService {
         });
     }
 
-    async updateOrderStatus(orderId: string, status: OrderStatus, tenantId: string) {
-        await this.ordersRepository.update({ id: orderId, tenantId }, { status });
+    async updateOrderStatus(orderId: string, status: OrderStatus, tenantId: string, reason?: string) {
+        const updateData: any = { status };
+        if (status === OrderStatus.CANCELLED && reason) {
+            updateData.cancellationReason = reason;
+        }
+
+        await this.ordersRepository.update({ id: orderId, tenantId }, updateData);
         const updatedOrder = await this.ordersRepository.findOne({ where: { id: orderId }, relations: ['items', 'items.product'] });
 
         if (updatedOrder) {

@@ -13,6 +13,7 @@ import { KdsModule } from './kds/kds.module';
 import { TablesModule } from './tables/tables.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BranchesModule } from './branches/branches.module';
+import { CustomersModule } from './customers/customers.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -43,6 +44,7 @@ import { AppService } from './app.service';
     TablesModule,
     AnalyticsModule,
     BranchesModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

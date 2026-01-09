@@ -24,7 +24,7 @@ export class TablesService {
     }
 
     findAll(tenantId: string, branchId?: string) {
-        const where: any = { tenantId };
+        const where: any = { tenantId, isArchived: false };
         if (branchId) {
             where.branchId = branchId;
         }
@@ -47,11 +47,53 @@ export class TablesService {
         return this.findOne(id);
     }
 
+    async updateStatus(id: string, status: string) {
+        await this.tablesRepository.update(id, { status: status as any });
+        return this.findOne(id);
+    }
+
+    async archive(id: string) {
+        await this.tablesRepository.update(id, { isArchived: true });
+        return this.findOne(id);
+    }
+
     async remove(id: string) {
         const orderCount = await this.ordersRepository.count({ where: { tableId: id } });
         if (orderCount > 0) {
             throw new BadRequestException('Cannot delete table with existing orders. Please archive it instead.');
         }
         return this.tablesRepository.delete(id);
+    }
+
+    async cleanup(tenantId: string) {
+        if (!tenantId) {
+            throw new BadRequestException('Tenant ID is required for cleanup');
+        }
+
+        try {
+            // Find all tables for this tenant
+            const tables = await this.tablesRepository.find({ where: { tenantId } });
+            const results = { deleted: 0, archived: 0, errors: 0 };
+
+            for (const table of tables) {
+                try {
+                    const orderCount = await this.ordersRepository.count({ where: { tableId: table.id } });
+                    if (orderCount > 0) {
+                        await this.archive(table.id);
+                        results.archived++;
+                    } else {
+                        await this.tablesRepository.delete(table.id);
+                        results.deleted++;
+                    }
+                } catch (e) {
+                    console.error(`Failed to cleanup table ${table.id}`, e);
+                    results.errors++;
+                }
+            }
+            return results;
+        } catch (error) {
+            console.error('Cleanup failed', error);
+            throw error;
+        }
     }
 }

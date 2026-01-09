@@ -13,6 +13,11 @@ export enum OrderStatus {
     CANCELLED = 'cancelled',
 }
 
+export enum OrderType {
+    DINING = 'dining',
+    TAKEAWAY = 'takeaway',
+}
+
 @Entity('orders')
 export class Order extends BaseEntity {
     @Column({
@@ -21,6 +26,19 @@ export class Order extends BaseEntity {
         default: OrderStatus.PENDING,
     })
     status: OrderStatus;
+
+    @Column({
+        type: 'enum',
+        enum: ['dining', 'takeaway'],
+        default: 'dining',
+    })
+    orderType: 'dining' | 'takeaway';
+
+    @Column({ nullable: true })
+    cancellationReason: string;
+
+    @Column({ nullable: true })
+    orderNumber: string;
 
     @Column('decimal', { precision: 10, scale: 2 })
     totalAmount: number;
@@ -52,6 +70,13 @@ export class Order extends BaseEntity {
     @ManyToOne(() => Table, { nullable: true })
     @JoinColumn({ name: 'tableId' })
     table: Table;
+
+    @Column({ nullable: true })
+    customerId: string;
+
+    @ManyToOne('Customer', (customer: any) => customer.orders, { nullable: true })
+    @JoinColumn({ name: 'customerId' })
+    customer: any;
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
     items: OrderItem[];
