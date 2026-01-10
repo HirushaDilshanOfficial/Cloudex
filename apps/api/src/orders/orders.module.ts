@@ -8,9 +8,11 @@ import { EventsModule } from '../events/events.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { RecipesModule } from '../recipes/recipes.module';
 import { KdsModule } from '../kds/kds.module';
+import { TablesModule } from '../tables/tables.module';
+import { CustomersModule } from '../customers/customers.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Order, OrderItem]), EventsModule, InventoryModule, RecipesModule, KdsModule],
+    imports: [TypeOrmModule.forFeature([Order, OrderItem]), EventsModule, InventoryModule, RecipesModule, KdsModule, TablesModule, CustomersModule],
     controllers: [OrdersController],
     providers: [OrdersService],
     exports: [TypeOrmModule, OrdersService],

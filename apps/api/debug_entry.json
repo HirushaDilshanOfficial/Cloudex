@@ -1,13 +1,15 @@
 {
   "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
+  "tableId": "e807c7f9-55ff-4f20-a8dd-932e2ad09bb3",
   "items": [
     {
       "productId": "b9b3ad95-9c10-4f63-8cae-1bac8b5920eb",
-      "quantity": 1,
+      "quantity": 8,
       "price": 7678
     }
   ],
-  "totalAmount": 8445.8,
+  "totalAmount": 67566.4,
+  "customerId": "84946435-a705-4484-90e2-c046f3798d1b",
   "orderType": "dining",
   "user": {
     "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
