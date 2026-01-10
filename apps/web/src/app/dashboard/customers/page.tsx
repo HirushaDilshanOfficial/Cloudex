@@ -28,6 +28,7 @@ export default function CustomersPage() {
         name: '',
         phoneNumber: '',
         email: '',
+        loyaltyPoints: 0,
     });
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const token = useAuthStore((state) => state.token);
@@ -80,7 +81,7 @@ export default function CustomersPage() {
             setShowModal(false);
             setEditingCustomer(null);
             fetchCustomers();
-            setFormData({ name: '', phoneNumber: '', email: '' });
+            setFormData({ name: '', phoneNumber: '', email: '', loyaltyPoints: 0 });
         } catch (error) {
             console.error('Failed to save customer', error);
             toast.error('Failed to save customer');
@@ -93,6 +94,7 @@ export default function CustomersPage() {
             name: customer.name,
             phoneNumber: customer.phoneNumber || '',
             email: customer.email || '',
+            loyaltyPoints: customer.loyaltyPoints || 0,
         });
         setShowModal(true);
     };
@@ -125,7 +127,7 @@ export default function CustomersPage() {
                     <button
                         onClick={() => {
                             setEditingCustomer(null);
-                            setFormData({ name: '', phoneNumber: '', email: '' });
+                            setFormData({ name: '', phoneNumber: '', email: '', loyaltyPoints: 0 });
                             setShowModal(true);
                         }}
                         className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -234,6 +236,17 @@ export default function CustomersPage() {
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         className="w-full p-2 border rounded-lg mt-1"
                                         placeholder="john@example.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Loyalty Points</label>
+                                    <input
+                                        type="number"
+                                        value={formData.loyaltyPoints}
+                                        onChange={(e) => setFormData({ ...formData, loyaltyPoints: parseInt(e.target.value) || 0 })}
+                                        className="w-full p-2 border rounded-lg mt-1"
+                                        placeholder="0"
+                                        min="0"
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2 mt-6">

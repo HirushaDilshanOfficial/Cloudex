@@ -1,6 +1,7 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, IsNumber, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateOrderItemDto } from './create-order-item.dto';
+import { OrderType } from '../entities/order.entity';
 
 export class CreateOrderDto {
     @IsUUID()

@@ -8,10 +8,10 @@ import { EventsGateway } from '../events/events.gateway';
 import { InventoryService } from '../inventory/inventory.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { StockMovementType } from '../inventory/entities/stock-movement.entity';
-import { StockMovementType } from '../inventory/entities/stock-movement.entity';
 import { KdsGateway } from '../kds/kds.gateway';
 import { TablesService } from '../tables/tables.service';
 import { TableStatus } from '../tables/entities/table.entity';
+import { CustomersService } from '../customers/customers.service';
 
 @Injectable()
 export class OrdersService {
@@ -23,9 +23,9 @@ export class OrdersService {
         private eventsGateway: EventsGateway,
         private inventoryService: InventoryService,
         private recipesService: RecipesService,
-        private recipesService: RecipesService,
         private kdsGateway: KdsGateway,
         private tablesService: TablesService,
+        private customersService: CustomersService,
     ) { }
 
     async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -99,6 +99,29 @@ export class OrdersService {
             console.log('Saving order header...');
             const savedOrder = await this.ordersRepository.save(order);
             console.log('Order header saved:', savedOrder.id);
+
+            // Award Loyalty Points
+            if (createOrderDto.customerId) {
+                try {
+                    const points = Math.floor(totalAmount / 10);
+                    if (points > 0) {
+                        const customer = await this.customersService.findOne(createOrderDto.customerId);
+                        if (customer) {
+                            await this.customersService.update(customer.id, {
+                                loyaltyPoints: (customer.loyaltyPoints || 0) + points
+                            });
+                            console.log(`Awarded ${points} loyalty points to customer ${customer.id}. New total: ${(customer.loyaltyPoints || 0) + points}`);
+                        } else {
+                            console.warn(`Customer ${createOrderDto.customerId} not found for points award.`);
+                        }
+                    } else {
+                        console.log(`Total amount ${totalAmount} too low for points (Points: ${points})`);
+                    }
+                } catch (error) {
+                    console.error('Failed to award loyalty points', error);
+                    // Don't fail the order if points fail
+                }
+            }
 
             const orderItems = items.map((item) =>
                 this.orderItemsRepository.create({
