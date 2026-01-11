@@ -1,10 +1,14 @@
 {
-  "timestamp": "2026-01-09T17:31:39.163Z",
-  "path": "/branches?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
-  "method": "GET",
+  "timestamp": "2026-01-11T13:31:46.273Z",
+  "path": "/auth/login",
+  "method": "POST",
+  "body": {
+    "email": "kitchen2@gmail.com",
+    "password": "123456"
+  },
   "error": {
-    "message": "Unauthorized",
-    "stack": "UnauthorizedException: Unauthorized\n    at JwtAuthGuard.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:60:30)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:44:124\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:83:24\n    at allFailed (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:110:18)\n    at attempt (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:183:28)\n    at strategy.fail (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:314:9)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport-jwt/lib/strategy.js:106:33\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:190:16\n    at getSecret (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:97:14)\n    at module.exports [as verify] (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:101:10)",
+    "message": "Invalid credentials",
+    "stack": "UnauthorizedException: Invalid credentials\n    at AuthController.login (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/auth/auth.controller.ts:15:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
     "name": "UnauthorizedException"
   }
 }

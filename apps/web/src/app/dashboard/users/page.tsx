@@ -42,6 +42,11 @@ export default function UserManagementPage() {
     const [tenantId, setTenantId] = useState<string>('');
     const [error, setError] = useState<string>('');
 
+    // Filters
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [branchFilter, setBranchFilter] = useState('all');
+
     useEffect(() => {
         if (token) {
             try {
@@ -144,6 +149,18 @@ export default function UserManagementPage() {
         }
     };
 
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = (
+            (user.firstName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.lastName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+        const matchesBranch = branchFilter === 'all' || (branchFilter === 'none' ? !user.branchId : user.branchId === branchFilter);
+
+        return matchesSearch && matchesRole && matchesBranch;
+    });
+
     return (
         <TenantLayout>
             <div className="space-y-6">
@@ -165,6 +182,48 @@ export default function UserManagementPage() {
                     </button>
                 </div>
 
+                {/* Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Search Staff</label>
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Filter by Role</label>
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="cashier">Cashier</option>
+                            <option value="kitchen">Kitchen</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Filter by Branch</label>
+                        <select
+                            value={branchFilter}
+                            onChange={(e) => setBranchFilter(e.target.value)}
+                            className="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                            <option value="all">All Branches</option>
+                            <option value="none">No Branch (Head Office)</option>
+                            {branches.map(branch => (
+                                <option key={branch.id} value={branch.id}>{branch.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 {loading ? (
                     <div className="flex justify-center p-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -182,7 +241,7 @@ export default function UserManagementPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {users.map((user) => (
+                                {filteredUsers.map((user) => (
                                     <tr key={user.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 flex items-center gap-3">
                                             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
