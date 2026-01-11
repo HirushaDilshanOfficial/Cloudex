@@ -1,21 +1,19 @@
 {
   "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
-  "tableId": "e807c7f9-55ff-4f20-a8dd-932e2ad09bb3",
   "items": [
     {
-      "productId": "b9b3ad95-9c10-4f63-8cae-1bac8b5920eb",
-      "quantity": 8,
-      "price": 7678
+      "productId": "a2f434f4-0f50-40f7-8277-d14913f4351e",
+      "quantity": 2,
+      "price": 676
     }
   ],
-  "totalAmount": 67566.4,
-  "customerId": "84946435-a705-4484-90e2-c046f3798d1b",
+  "totalAmount": 1487.2,
   "orderType": "dining",
   "user": {
-    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
-    "email": "admin@gmail.com",
-    "role": "admin",
+    "userId": "345dc176-2cac-48aa-8cf1-f2dcaff77b03",
+    "email": "cashier3@gmail.com",
+    "role": "cashier",
     "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
-    "branchId": null
+    "branchId": "b2070c14-ce0f-4484-8aa6-9c1f315de79b"
   }
 }

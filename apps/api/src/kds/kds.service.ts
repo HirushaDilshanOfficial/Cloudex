@@ -12,12 +12,18 @@ export class KdsService {
         private kdsGateway: KdsGateway,
     ) { }
 
-    async getActiveOrders(tenantId: string) {
+    async getActiveOrders(tenantId: string, branchId?: string) {
+        const where: any = {
+            tenantId,
+            status: In([OrderStatus.PENDING, OrderStatus.PREPARING]),
+        };
+
+        if (branchId) {
+            where.branchId = branchId;
+        }
+
         return this.ordersRepository.find({
-            where: {
-                tenantId,
-                status: In([OrderStatus.PENDING, OrderStatus.PREPARING]),
-            },
+            where,
             relations: ['items', 'items.product'],
             order: { createdAt: 'ASC' },
         });

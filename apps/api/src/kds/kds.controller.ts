@@ -12,8 +12,8 @@ export class KdsController {
 
     @Get('active')
     @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
-    getActiveOrders(@Query('tenantId') tenantId: string) {
-        return this.kdsService.getActiveOrders(tenantId);
+    getActiveOrders(@Query('tenantId') tenantId: string, @Query('branchId') branchId?: string) {
+        return this.kdsService.getActiveOrders(tenantId, branchId);
     }
 
     @Put('orders/:id/status')

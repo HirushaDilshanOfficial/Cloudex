@@ -29,6 +29,7 @@ interface Order {
 
 interface DecodedToken {
     tenantId: string;
+    branchId?: string;
 }
 
 export default function KdsPage() {
@@ -38,6 +39,7 @@ export default function KdsPage() {
     const setToken = useAuthStore((state) => state.setToken);
     const router = useRouter();
     const [tenantId, setTenantId] = useState<string>('');
+    const [branchId, setBranchId] = useState<string>('');
 
     const [confirmModal, setConfirmModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
     const [cancelModal, setCancelModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
@@ -48,6 +50,9 @@ export default function KdsPage() {
             try {
                 const decoded: DecodedToken = jwtDecode(token);
                 setTenantId(decoded.tenantId);
+                if (decoded.branchId) {
+                    setBranchId(decoded.branchId);
+                }
             } catch (error) {
                 console.error('Invalid token', error);
             }
@@ -58,7 +63,11 @@ export default function KdsPage() {
         // Fetch initial active orders
         const fetchOrders = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/kds/active?tenantId=${tenantId}`, {
+                const url = branchId
+                    ? `http://localhost:3001/kds/active?tenantId=${tenantId}&branchId=${branchId}`
+                    : `http://localhost:3001/kds/active?tenantId=${tenantId}`;
+
+                const response = await axios.get(url, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setOrders(response.data);
@@ -78,7 +87,9 @@ export default function KdsPage() {
 
             newSocket.on('connect', () => {
                 console.log('Connected to KDS');
-                newSocket.emit('joinRoom', tenantId);
+                const room = branchId ? `${tenantId}_${branchId}` : tenantId;
+                newSocket.emit('joinRoom', room);
+                console.log(`Joining room: ${room}`);
             });
 
             newSocket.on('orderToKitchen', (order: Order) => {
