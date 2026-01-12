@@ -10,6 +10,7 @@ import { jwtDecode } from 'jwt-decode';
 
 interface DecodedToken {
     role: string;
+    branchName?: string;
 }
 
 export function TenantLayout({ children }: { children: React.ReactNode }) {
@@ -17,11 +18,13 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
     const setToken = useAuthStore((state) => state.setToken);
     const router = useRouter();
     let role = '';
+    let branchName = '';
 
     if (token) {
         try {
             const decoded: DecodedToken = jwtDecode(token);
             role = decoded.role;
+            branchName = decoded.branchName || '';
         } catch (e) {
             console.error('Invalid token');
         }
@@ -99,7 +102,12 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                 <header className="bg-white shadow-sm border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-10">
                     <h2 className="text-xl font-semibold text-gray-800">Dashboard</h2>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-500 capitalize">{role || 'User'}</span>
+                        <div className="text-right">
+                            <span className="block text-sm font-medium text-gray-900 capitalize">{role || 'User'}</span>
+                            {branchName && (
+                                <span className="block text-xs text-gray-500">{branchName}</span>
+                            )}
+                        </div>
                         <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
                             {(role?.[0] || 'U').toUpperCase()}
                         </div>

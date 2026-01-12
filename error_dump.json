@@ -1,14 +1,26 @@
 {
-  "timestamp": "2026-01-11T13:31:46.273Z",
-  "path": "/auth/login",
-  "method": "POST",
+  "timestamp": "2026-01-11T14:16:27.291Z",
+  "path": "/users/78756efe-80d5-40d4-a623-48b75e97fa1f",
+  "method": "PUT",
   "body": {
-    "email": "kitchen2@gmail.com",
-    "password": "123456"
+    "firstName": "tt",
+    "lastName": "ttt",
+    "email": "cashier1@gmail.com",
+    "password": "",
+    "role": "cashier",
+    "branchId": "d8a1cb81-96d3-4cfe-bb3d-c5a5db685802",
+    "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53"
+  },
+  "user": {
+    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
+    "email": "admin@gmail.com",
+    "role": "admin",
+    "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
+    "branchId": null
   },
   "error": {
-    "message": "Invalid credentials",
-    "stack": "UnauthorizedException: Invalid credentials\n    at AuthController.login (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/auth/auth.controller.ts:15:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
-    "name": "UnauthorizedException"
+    "message": "Property \"password\" was not found in \"User\". Make sure your query is correct.",
+    "stack": "EntityPropertyNotFoundError: Property \"password\" was not found in \"User\". Make sure your query is correct.\n    at <anonymous> (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/UpdateQueryBuilder.ts:500:31)\n    at Array.forEach (<anonymous>)\n    at UpdateQueryBuilder.createUpdateExpression (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/UpdateQueryBuilder.ts:493:68)\n    at UpdateQueryBuilder.getQuery (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/UpdateQueryBuilder.ts:53:21)\n    at UpdateQueryBuilder.getQueryAndParameters (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/QueryBuilder.ts:495:28)\n    at UpdateQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/UpdateQueryBuilder.ts:142:50)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async UsersService.update (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/users/users.service.ts:60:13)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
+    "name": "EntityPropertyNotFoundError"
   }
 }
