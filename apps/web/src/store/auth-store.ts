@@ -9,6 +9,7 @@ interface User {
     role: string;
     tenantId: string;
     branchId?: string;
+    branchName?: string;
 }
 
 interface AuthState {

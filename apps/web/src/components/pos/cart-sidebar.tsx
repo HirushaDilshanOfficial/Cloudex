@@ -192,6 +192,9 @@ export function CartSidebar() {
                             disabled={orderType === 'takeaway'}
                         >
                             <option value="">{orderType === 'takeaway' ? 'No Table (Takeaway)' : 'Select Table (Optional)'}</option>
+                            {orderType === 'dining' && tables.length === 0 && (
+                                <option value="" disabled>No tables found for this branch</option>
+                            )}
                             {orderType === 'dining' && tables.map((table) => (
                                 <option key={table.id} value={table.id}>
                                     {table.name} {table.status === 'occupied' ? '(Occupied)' : ''}
