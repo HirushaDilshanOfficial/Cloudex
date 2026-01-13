@@ -61,4 +61,13 @@ export class InventoryService {
 
         return ingredient;
     }
+
+    async update(id: string, data: Partial<Ingredient>): Promise<Ingredient> {
+        await this.ingredientRepository.update(id, data);
+        return this.ingredientRepository.findOne({ where: { id } });
+    }
+
+    async remove(id: string): Promise<void> {
+        await this.ingredientRepository.delete(id);
+    }
 }

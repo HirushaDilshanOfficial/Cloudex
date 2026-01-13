@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { TenantLayout } from '@/components/tenant/tenant-layout';
 import { useAuthStore } from '@/store/auth-store';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Eye, Clock, CheckCircle, XCircle, PlayCircle, Armchair } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 
@@ -29,13 +29,16 @@ interface Order {
         lastName: string;
     };
     branch?: {
-        name: string;
-    };
-    branch?: {
+        id: string;
         name: string;
     };
     orderNumber?: string;
     orderType?: 'dining' | 'takeaway';
+}
+
+interface Branch {
+    id: string;
+    name: string;
 }
 
 interface DecodedToken {
@@ -50,6 +53,8 @@ export default function OrderHistoryPage() {
     const [tenantId, setTenantId] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterBranch, setFilterBranch] = useState('all');
+    const [branches, setBranches] = useState<Branch[]>([]);
 
     useEffect(() => {
         if (token) {
@@ -64,9 +69,7 @@ export default function OrderHistoryPage() {
 
     const fetchOrders = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/orders?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/orders?tenantId=${tenantId}`);
             setOrders(response.data);
         } catch (error) {
             console.error('Failed to fetch orders', error);
@@ -75,9 +78,19 @@ export default function OrderHistoryPage() {
         }
     };
 
+    const fetchBranches = async () => {
+        try {
+            const response = await api.get(`/branches?tenantId=${tenantId}`);
+            setBranches(response.data);
+        } catch (error) {
+            console.error('Failed to fetch branches', error);
+        }
+    };
+
     useEffect(() => {
         if (token && tenantId) {
             fetchOrders();
+            fetchBranches();
         }
     }, [token, tenantId]);
 
@@ -103,8 +116,9 @@ export default function OrderHistoryPage() {
             order.branch?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
+        const matchesBranch = filterBranch === 'all' || order.branch?.id === filterBranch;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesBranch;
     });
 
     return (
@@ -115,7 +129,7 @@ export default function OrderHistoryPage() {
                         <h1 className="text-2xl font-bold text-gray-800">Order History</h1>
                         <p className="text-gray-500">View and manage past orders</p>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         <input
                             type="text"
                             placeholder="Search orders..."
@@ -123,6 +137,18 @@ export default function OrderHistoryPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary flex-1 sm:w-64"
                         />
+                        <select
+                            value={filterBranch}
+                            onChange={(e) => setFilterBranch(e.target.value)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                        >
+                            <option value="all">All Branches</option>
+                            {branches.map((branch) => (
+                                <option key={branch.id} value={branch.id}>
+                                    {branch.name}
+                                </option>
+                            ))}
+                        </select>
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}

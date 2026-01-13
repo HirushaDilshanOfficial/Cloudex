@@ -35,4 +35,22 @@ export class InventoryController {
             req.user?.branchId,
         );
     }
+
+    @Post('ingredients/:id') // Using POST for update to avoid CORS/method issues if any, but standard is PATCH. Let's use PATCH.
+    @Roles(UserRole.MANAGER, UserRole.ADMIN)
+    updateIngredientPost(@Param('id') id: string, @Body() data: any) {
+        return this.inventoryService.update(id, data);
+    }
+
+    @Patch('ingredients/:id')
+    @Roles(UserRole.MANAGER, UserRole.ADMIN)
+    updateIngredient(@Param('id') id: string, @Body() data: any) {
+        return this.inventoryService.update(id, data);
+    }
+
+    @Delete('ingredients/:id')
+    @Roles(UserRole.MANAGER, UserRole.ADMIN)
+    removeIngredient(@Param('id') id: string) {
+        return this.inventoryService.remove(id);
+    }
 }
