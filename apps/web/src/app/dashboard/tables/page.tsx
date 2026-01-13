@@ -42,6 +42,11 @@ export default function TableManagementPage() {
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
 
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterBranch, setFilterBranch] = useState('all');
+
     useEffect(() => {
         if (token) {
             try {
@@ -143,41 +148,84 @@ export default function TableManagementPage() {
         }
     };
 
+    const filteredTables = tables.filter(table => {
+        const matchesSearch = table.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = filterStatus === 'all' || table.status === filterStatus;
+        const matchesBranch = filterBranch === 'all' || table.branch?.id === filterBranch;
+
+        return matchesSearch && matchesStatus && matchesBranch;
+    });
+
     return (
         <TenantLayout>
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Table Management</h1>
                         <p className="text-gray-500">Manage restaurant tables and capacity</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingTable(null);
-                            setFormData({ name: '', capacity: 4, branchId: '' });
-                            setShowModal(true);
-                        }}
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={20} /> Add Table
-                    </button>
-                    <button
-                        onClick={async () => {
-                            if (confirm('Are you sure you want to delete ALL tables? Tables with orders will be archived.')) {
-                                try {
-                                    const res = await api.delete(`/tables/bulk-cleanup?tenantId=${tenantId}`);
-                                    toast.success(`Cleanup complete: ${res.data.deleted} deleted, ${res.data.archived} archived`);
-                                    fetchTables();
-                                } catch (e) {
-                                    console.error(e);
-                                    toast.error('Cleanup failed');
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                setEditingTable(null);
+                                setFormData({ name: '', capacity: 4, branchId: '' });
+                                setShowModal(true);
+                            }}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={20} /> Add Table
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (confirm('Are you sure you want to delete ALL tables? Tables with orders will be archived.')) {
+                                    try {
+                                        const res = await api.delete(`/tables/bulk-cleanup?tenantId=${tenantId}`);
+                                        toast.success(`Cleanup complete: ${res.data.deleted} deleted, ${res.data.archived} archived`);
+                                        fetchTables();
+                                    } catch (e) {
+                                        console.error(e);
+                                        toast.error('Cleanup failed');
+                                    }
                                 }
-                            }
-                        }}
-                        className="ml-2 bg-red-100 text-red-600 hover:bg-red-200 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                            }}
+                            className="bg-red-100 text-red-600 hover:bg-red-200 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Trash2 size={20} /> Cleanup All
+                        </button>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2">
+                    <input
+                        type="text"
+                        placeholder="Search tables..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary flex-1 sm:w-64"
+                    />
+                    <select
+                        value={filterBranch}
+                        onChange={(e) => setFilterBranch(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
                     >
-                        <Trash2 size={20} /> Cleanup All
-                    </button>
+                        <option value="all">All Branches</option>
+                        {branches.map((branch) => (
+                            <option key={branch.id} value={branch.id}>
+                                {branch.name}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="reserved">Reserved</option>
+                    </select>
                 </div>
 
                 {loading ? (
@@ -186,7 +234,7 @@ export default function TableManagementPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {tables.map((table) => (
+                        {filteredTables.map((table) => (
                             <div key={table.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between group hover:border-primary/50 transition-colors">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
@@ -224,11 +272,11 @@ export default function TableManagementPage() {
                                 </div>
                             </div>
                         ))}
-                        {tables.length === 0 && (
+                        {filteredTables.length === 0 && (
                             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-gray-400">
                                 <Armchair size={48} className="mb-4 opacity-50" />
                                 <p className="text-lg font-medium">No tables found</p>
-                                <p className="text-sm">Get started by adding a new table</p>
+                                <p className="text-sm">Try adjusting your filters</p>
                             </div>
                         )}
                     </div>
