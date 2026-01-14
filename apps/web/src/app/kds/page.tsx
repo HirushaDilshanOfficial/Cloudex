@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/auth-store';
-import { Clock, CheckCircle, PlayCircle, LogOut } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, LogOut, AlertTriangle, Package } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
     id: string;
@@ -32,6 +33,13 @@ interface DecodedToken {
     branchId?: string;
 }
 
+interface Ingredient {
+    id: string;
+    name: string;
+    currentStock: number;
+    unit: string;
+}
+
 export default function KdsPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -44,6 +52,13 @@ export default function KdsPage() {
     const [confirmModal, setConfirmModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
     const [cancelModal, setCancelModal] = useState<{ show: boolean; orderId: string | null }>({ show: false, orderId: null });
     const [cancellationReason, setCancellationReason] = useState('');
+
+    // Stock Report Modal
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [showStockModal, setShowStockModal] = useState(false);
+    const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+    const [selectedIngredientId, setSelectedIngredientId] = useState('');
+    const [reportNotes, setReportNotes] = useState('');
 
     useEffect(() => {
         if (token) {
@@ -161,6 +176,8 @@ export default function KdsPage() {
     const closeModals = () => {
         setConfirmModal({ show: false, orderId: null });
         setCancelModal({ show: false, orderId: null });
+        setShowReportModal(false);
+        setShowStockModal(false);
     };
 
     const handleLogout = () => {
@@ -168,11 +185,72 @@ export default function KdsPage() {
         router.push('/login');
     };
 
+    const handleOpenReportModal = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setIngredients(response.data);
+            setShowReportModal(true);
+        } catch (error) {
+            console.error('Failed to fetch ingredients', error);
+            toast.error('Failed to load ingredients');
+        }
+    };
+
+    const handleOpenStockModal = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setIngredients(response.data);
+            setShowStockModal(true);
+        } catch (error) {
+            console.error('Failed to fetch ingredients', error);
+            toast.error('Failed to load stock');
+        }
+    };
+
+    const handleSubmitReport = async () => {
+        if (!selectedIngredientId) {
+            toast.error('Please select an ingredient');
+            return;
+        }
+        try {
+            await axios.post('http://localhost:3001/inventory/alerts', {
+                ingredientId: selectedIngredientId,
+                notes: reportNotes,
+                tenantId,
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Low stock reported to manager');
+            setShowReportModal(false);
+            setSelectedIngredientId('');
+            setReportNotes('');
+        } catch (error) {
+            console.error('Failed to report stock', error);
+            toast.error('Failed to send report');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 p-4 text-white">
             <header className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold tracking-tight">Kitchen Display System</h1>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleOpenStockModal}
+                        className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-500 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mr-2"
+                    >
+                        <Package size={20} /> View Stock
+                    </button>
+                    <button
+                        onClick={handleOpenReportModal}
+                        className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-500 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mr-4"
+                    >
+                        <AlertTriangle size={20} /> Report Low Stock
+                    </button>
                     <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
                     <span className="text-sm text-gray-400">Live</span>
                     <button
@@ -300,6 +378,110 @@ export default function KdsPage() {
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"
                             >
                                 Confirm Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Report Low Stock Modal */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-xl max-w-sm w-full border border-gray-700 shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                            <AlertTriangle className="text-yellow-500" /> Report Low Stock
+                        </h3>
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Ingredient</label>
+                                <select
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-yellow-500"
+                                    value={selectedIngredientId}
+                                    onChange={(e) => setSelectedIngredientId(e.target.value)}
+                                >
+                                    <option value="">Select Ingredient</option>
+                                    {ingredients.map((ing) => (
+                                        <option key={ing.id} value={ing.id}>{ing.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Notes (Optional)</label>
+                                <textarea
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-yellow-500"
+                                    rows={2}
+                                    placeholder="e.g. Almost empty, only 2 left..."
+                                    value={reportNotes}
+                                    onChange={(e) => setReportNotes(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={closeModals}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitReport}
+                                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Submit Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Stock Modal */}
+            {showStockModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-xl max-w-2xl w-full border border-gray-700 shadow-2xl max-h-[80vh] flex flex-col">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Package className="text-blue-500" /> Current Stock Levels
+                            </h3>
+                            <button onClick={closeModals} className="text-gray-400 hover:text-white">
+                                <LogOut size={20} />
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 pr-2">
+                            <table className="w-full text-left text-gray-300">
+                                <thead className="text-xs uppercase bg-gray-900/50 text-gray-400 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 rounded-l-lg">Ingredient</th>
+                                        <th className="px-4 py-3">Stock Level</th>
+                                        <th className="px-4 py-3 rounded-r-lg">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-700">
+                                    {ingredients.map((ing) => (
+                                        <tr key={ing.id} className="hover:bg-gray-700/30 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-white">{ing.name}</td>
+                                            <td className="px-4 py-3 font-mono">{ing.currentStock} {ing.unit}</td>
+                                            <td className="px-4 py-3">
+                                                {ing.currentStock < 10 ? (
+                                                    <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full flex items-center gap-1 w-fit">
+                                                        <AlertTriangle size={12} /> Low
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded-full">OK</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                onClick={closeModals}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>
