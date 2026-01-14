@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { Plus, Save } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
@@ -65,7 +65,7 @@ export default function RecipeManagerPage() {
     };
 
     return (
-        <TenantLayout>
+        <>
             <div className="max-w-3xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -144,6 +144,6 @@ export default function RecipeManagerPage() {
                     </div>
                 </div>
             </div>
-        </TenantLayout>
+        </>
     );
 }

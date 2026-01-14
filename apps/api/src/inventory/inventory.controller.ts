@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Query, Request, Patch, Delete } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -13,7 +13,9 @@ export class InventoryController {
     @Post('ingredients')
     @Roles(UserRole.MANAGER, UserRole.ADMIN)
     createIngredient(@Body() data: any, @Request() req) {
-        data.branchId = req.user?.branchId;
+        if (req.user.role !== UserRole.ADMIN) {
+            data.branchId = req.user?.branchId;
+        }
         return this.inventoryService.createIngredient(data);
     }
 
@@ -52,5 +54,24 @@ export class InventoryController {
     @Roles(UserRole.MANAGER, UserRole.ADMIN)
     removeIngredient(@Param('id') id: string) {
         return this.inventoryService.remove(id);
+    }
+
+    @Post('alerts')
+    @Roles(UserRole.KITCHEN, UserRole.MANAGER, UserRole.ADMIN)
+    createAlert(@Body() data: any, @Request() req) {
+        data.branchId = req.user?.branchId;
+        return this.inventoryService.createAlert(data);
+    }
+
+    @Get('alerts')
+    @Roles(UserRole.MANAGER, UserRole.ADMIN)
+    getAlerts(@Query('tenantId') tenantId: string, @Request() req) {
+        return this.inventoryService.getAlerts(tenantId, req.user?.branchId);
+    }
+
+    @Patch('alerts/:id/resolve')
+    @Roles(UserRole.MANAGER, UserRole.ADMIN)
+    resolveAlert(@Param('id') id: string) {
+        return this.inventoryService.resolveAlert(id);
     }
 }

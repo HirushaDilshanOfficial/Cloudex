@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
-import { Plus, Search, AlertTriangle, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+
+import { Plus, Search, AlertTriangle, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
@@ -29,6 +29,18 @@ interface DecodedToken {
     tenantId: string;
 }
 
+interface Alert {
+    id: string;
+    ingredient: {
+        name: string;
+    };
+    branch: {
+        name: string;
+    };
+    notes: string;
+    createdAt: string;
+}
+
 export default function InventoryPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,6 +48,7 @@ export default function InventoryPage() {
 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [tenantId, setTenantId] = useState<string>('');
+    const [alerts, setAlerts] = useState<Alert[]>([]);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,13 +75,6 @@ export default function InventoryPage() {
         }
     }, [token]);
 
-    useEffect(() => {
-        if (token && tenantId) {
-            fetchIngredients();
-            fetchBranches();
-        }
-    }, [token, tenantId]);
-
     const fetchIngredients = async () => {
         try {
             const response = await api.get(`/inventory/ingredients?tenantId=${tenantId}`);
@@ -88,6 +94,34 @@ export default function InventoryPage() {
             console.error('Failed to fetch branches', error);
         }
     };
+
+    const fetchAlerts = async () => {
+        try {
+            const response = await api.get(`/inventory/alerts?tenantId=${tenantId}`);
+            setAlerts(response.data);
+        } catch (error) {
+            console.error('Failed to fetch alerts', error);
+        }
+    };
+
+    const handleResolveAlert = async (id: string) => {
+        try {
+            await api.patch(`/inventory/alerts/${id}/resolve`);
+            toast.success('Alert resolved');
+            fetchAlerts();
+        } catch (error) {
+            console.error('Failed to resolve alert', error);
+            toast.error('Failed to resolve alert');
+        }
+    };
+
+    useEffect(() => {
+        if (token && tenantId) {
+            fetchIngredients();
+            fetchBranches();
+            fetchAlerts();
+        }
+    }, [token, tenantId]);
 
     const handleSave = async () => {
         try {
@@ -169,7 +203,7 @@ export default function InventoryPage() {
     });
 
     return (
-        <TenantLayout>
+        <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Inventory</h1>
@@ -187,6 +221,33 @@ export default function InventoryPage() {
                     <span>Add Ingredient</span>
                 </button>
             </div>
+
+            {alerts.length > 0 && (
+                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <h3 className="text-lg font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                        <AlertTriangle className="text-yellow-600" /> Kitchen Stock Alerts
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {alerts.map((alert) => (
+                            <div key={alert.id} className="bg-white p-4 rounded-lg border border-yellow-100 shadow-sm flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold text-gray-800">{alert.ingredient.name}</p>
+                                    <p className="text-xs text-gray-500 mb-1">{alert.branch.name} • {new Date(alert.createdAt).toLocaleTimeString()}</p>
+                                    {alert.notes && <p className="text-sm text-gray-600 italic">"{alert.notes}"</p>}
+                                </div>
+                                <button
+                                    onClick={() => handleResolveAlert(alert.id)}
+                                    className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
+                                    title="Mark as Resolved"
+                                >
+                                    <CheckCircle size={20} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+            }
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-4">
@@ -283,148 +344,152 @@ export default function InventoryPage() {
             </div>
 
             {/* Add/Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">{editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient'}</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border rounded-lg"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+            {
+                showModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-xl font-bold mb-4">{editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient'}</h2>
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2 border rounded-lg"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                        <select
+                                            className="w-full p-2 border rounded-lg"
+                                            value={formData.unit}
+                                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                        >
+                                            <option value="kg">kg</option>
+                                            <option value="g">g</option>
+                                            <option value="l">l</option>
+                                            <option value="ml">ml</option>
+                                            <option value="pcs">pcs</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Cost/Unit</label>
+                                        <input
+                                            type="number"
+                                            className="w-full p-2 border rounded-lg"
+                                            value={formData.costPerUnit}
+                                            onChange={(e) => setFormData({ ...formData, costPerUnit: parseFloat(e.target.value) })}
+                                        />
+                                    </div>
+                                </div>
+                                {!editingIngredient && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
+                                        <input
+                                            type="number"
+                                            className="w-full p-2 border rounded-lg"
+                                            value={formData.currentStock}
+                                            onChange={(e) => setFormData({ ...formData, currentStock: parseFloat(e.target.value) })}
+                                        />
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
                                     <select
                                         className="w-full p-2 border rounded-lg"
-                                        value={formData.unit}
-                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                        value={formData.branchId}
+                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
                                     >
-                                        <option value="kg">kg</option>
-                                        <option value="g">g</option>
-                                        <option value="l">l</option>
-                                        <option value="ml">ml</option>
-                                        <option value="pcs">pcs</option>
+                                        <option value="">Select Branch (Optional)</option>
+                                        {branches.map((branch) => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Cost/Unit</label>
-                                    <input
-                                        type="number"
-                                        className="w-full p-2 border rounded-lg"
-                                        value={formData.costPerUnit}
-                                        onChange={(e) => setFormData({ ...formData, costPerUnit: parseFloat(e.target.value) })}
-                                    />
-                                </div>
                             </div>
-                            {!editingIngredient && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-                                    <input
-                                        type="number"
-                                        className="w-full p-2 border rounded-lg"
-                                        value={formData.currentStock}
-                                        onChange={(e) => setFormData({ ...formData, currentStock: parseFloat(e.target.value) })}
-                                    />
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
-                                <select
-                                    className="w-full p-2 border rounded-lg"
-                                    value={formData.branchId}
-                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                                 >
-                                    <option value="">Select Branch (Optional)</option>
-                                    {branches.map((branch) => (
-                                        <option key={branch.id} value={branch.id}>
-                                            {branch.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                >
+                                    {editingIngredient ? 'Save Changes' : 'Create'}
+                                </button>
                             </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-6">
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-                            >
-                                {editingIngredient ? 'Save Changes' : 'Create'}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Adjust Stock Modal */}
-            {showAdjustModal && selectedIngredient && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Adjust Stock: {selectedIngredient.name}</h2>
-                        <div className="space-y-4">
-                            <div className="flex gap-4">
+            {
+                showAdjustModal && selectedIngredient && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h2 className="text-xl font-bold mb-4">Adjust Stock: {selectedIngredient.name}</h2>
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setAdjustData({ ...adjustData, type: 'IN' })}
+                                        className={`flex-1 py-3 rounded-lg border flex items-center justify-center gap-2 ${adjustData.type === 'IN' ? 'bg-green-50 border-green-200 text-green-700' : 'border-gray-200 hover:bg-gray-50'}`}
+                                    >
+                                        <ArrowUpCircle size={20} /> Stock In
+                                    </button>
+                                    <button
+                                        onClick={() => setAdjustData({ ...adjustData, type: 'OUT' })}
+                                        className={`flex-1 py-3 rounded-lg border flex items-center justify-center gap-2 ${adjustData.type === 'OUT' ? 'bg-red-50 border-red-200 text-red-700' : 'border-gray-200 hover:bg-gray-50'}`}
+                                    >
+                                        <ArrowDownCircle size={20} /> Stock Out
+                                    </button>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity ({selectedIngredient.unit})</label>
+                                    <input
+                                        type="number"
+                                        className="w-full p-2 border rounded-lg"
+                                        value={adjustData.quantity}
+                                        onChange={(e) => setAdjustData({ ...adjustData, quantity: parseFloat(e.target.value) })}
+                                        min="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2 border rounded-lg"
+                                        placeholder="e.g. Purchase, Spoilage, Correction"
+                                        value={adjustData.reason}
+                                        onChange={(e) => setAdjustData({ ...adjustData, reason: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 mt-6">
                                 <button
-                                    onClick={() => setAdjustData({ ...adjustData, type: 'IN' })}
-                                    className={`flex-1 py-3 rounded-lg border flex items-center justify-center gap-2 ${adjustData.type === 'IN' ? 'bg-green-50 border-green-200 text-green-700' : 'border-gray-200 hover:bg-gray-50'}`}
+                                    onClick={() => setShowAdjustModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                                 >
-                                    <ArrowUpCircle size={20} /> Stock In
+                                    Cancel
                                 </button>
                                 <button
-                                    onClick={() => setAdjustData({ ...adjustData, type: 'OUT' })}
-                                    className={`flex-1 py-3 rounded-lg border flex items-center justify-center gap-2 ${adjustData.type === 'OUT' ? 'bg-red-50 border-red-200 text-red-700' : 'border-gray-200 hover:bg-gray-50'}`}
+                                    onClick={handleAdjustStock}
+                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
                                 >
-                                    <ArrowDownCircle size={20} /> Stock Out
+                                    Confirm Adjustment
                                 </button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity ({selectedIngredient.unit})</label>
-                                <input
-                                    type="number"
-                                    className="w-full p-2 border rounded-lg"
-                                    value={adjustData.quantity}
-                                    onChange={(e) => setAdjustData({ ...adjustData, quantity: parseFloat(e.target.value) })}
-                                    min="0"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border rounded-lg"
-                                    placeholder="e.g. Purchase, Spoilage, Correction"
-                                    value={adjustData.reason}
-                                    onChange={(e) => setAdjustData({ ...adjustData, reason: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-6">
-                            <button
-                                onClick={() => setShowAdjustModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleAdjustStock}
-                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-                            >
-                                Confirm Adjustment
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </TenantLayout>
+                )
+            }
+        </>
     );
 }

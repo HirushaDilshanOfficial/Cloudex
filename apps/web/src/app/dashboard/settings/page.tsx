@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Save, Building, DollarSign, Printer, Store } from 'lucide-react';
@@ -96,16 +96,16 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <TenantLayout>
+            <>
                 <div className="flex justify-center p-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-            </TenantLayout>
+            </>
         );
     }
 
     return (
-        <TenantLayout>
+        <>
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
@@ -255,6 +255,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-        </TenantLayout>
+        </>
     );
 }

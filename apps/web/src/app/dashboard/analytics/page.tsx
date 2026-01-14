@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { useAuthStore } from '@/store/auth-store';
 import axios from 'axios';
 import {
@@ -52,16 +52,16 @@ export default function AnalyticsPage() {
 
     if (loading) {
         return (
-            <TenantLayout>
+            <>
                 <div className="flex items-center justify-center h-96">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
-            </TenantLayout>
+            </>
         );
     }
 
     return (
-        <TenantLayout>
+        <>
             <div className="space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
@@ -159,6 +159,6 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
             </div>
-        </TenantLayout>
+        </>
     );
 }

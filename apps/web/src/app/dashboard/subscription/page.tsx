@@ -1,10 +1,10 @@
 import React from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { CreditCard, Check } from 'lucide-react';
 
 export default function SubscriptionPage() {
     return (
-        <TenantLayout>
+        <>
             <div className="max-w-4xl mx-auto text-center mb-12">
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">Upgrade Your Plan</h1>
                 <p className="text-lg text-gray-600">Choose the perfect plan for your restaurant business.</p>
@@ -96,6 +96,6 @@ export default function SubscriptionPage() {
                     </button>
                 </div>
             </div>
-        </TenantLayout>
+        </>
     );
 }

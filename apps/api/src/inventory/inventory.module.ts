@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Ingredient } from './entities/ingredient.entity';
-import { StockMovement } from './entities/stock-movement.entity';
 import { InventoryService } from './inventory.service';
 import { InventoryController } from './inventory.controller';
+import { Ingredient } from './entities/ingredient.entity';
+import { StockMovement } from './entities/stock-movement.entity';
+import { StockAlert } from './entities/stock-alert.entity';
+import { InventoryGateway } from './inventory.gateway';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement])],
+    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement, StockAlert])],
     controllers: [InventoryController],
-    providers: [InventoryService],
+    providers: [InventoryService, InventoryGateway],
     exports: [InventoryService],
 })
 export class InventoryModule { }

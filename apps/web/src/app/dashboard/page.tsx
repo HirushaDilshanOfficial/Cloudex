@@ -1,10 +1,9 @@
 import React from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
 import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
 
 export default function TenantDashboardPage() {
     return (
-        <TenantLayout>
+        <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatsCard title="Today's Sales" value="$1,240" icon={<DollarSign className="text-green-500" />} />
                 <StatsCard title="Total Orders" value="85" icon={<ShoppingBag className="text-blue-500" />} />
@@ -49,7 +48,7 @@ export default function TenantDashboardPage() {
                     </div>
                 </div>
             </div>
-        </TenantLayout>
+        </>
     );
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { Plus, Search, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
@@ -97,7 +97,7 @@ export default function MenuPage() {
     };
 
     return (
-        <TenantLayout>
+        <>
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Menu Management</h1>
@@ -274,6 +274,6 @@ export default function MenuPage() {
                     </tbody>
                 </table>
             </div>
-        </TenantLayout>
+        </>
     );
 }

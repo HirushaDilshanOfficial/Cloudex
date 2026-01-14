@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { TenantLayout } from '@/components/tenant/tenant-layout';
+
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Plus, Trash2, Edit2, Users, Search, Phone, Mail, Star } from 'lucide-react';
@@ -117,7 +117,7 @@ export default function CustomersPage() {
     );
 
     return (
-        <TenantLayout>
+        <>
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
@@ -269,6 +269,6 @@ export default function CustomersPage() {
                     </div>
                 )}
             </div>
-        </TenantLayout>
+        </>
     );
 }
