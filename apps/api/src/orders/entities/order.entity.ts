@@ -18,6 +18,11 @@ export enum OrderType {
     TAKEAWAY = 'takeaway',
 }
 
+export enum PaymentMethod {
+    CASH = 'CASH',
+    CARD = 'CARD',
+}
+
 @Entity('orders')
 export class Order extends BaseEntity {
     @Column({
@@ -33,6 +38,13 @@ export class Order extends BaseEntity {
         default: 'dining',
     })
     orderType: 'dining' | 'takeaway';
+
+    @Column({
+        type: 'enum',
+        enum: PaymentMethod,
+        default: PaymentMethod.CASH,
+    })
+    paymentMethod: PaymentMethod;
 
     @Column({ nullable: true })
     cancellationReason: string;

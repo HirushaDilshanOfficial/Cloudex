@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-01-13T08:40:01.263Z",
-  "path": "/inventory/alerts?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
+  "timestamp": "2026-01-15T06:11:49.258Z",
+  "path": "/products?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
   "method": "GET",
   "error": {
-    "message": "Cannot GET /inventory/alerts?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53",
-    "stack": "NotFoundException: Cannot GET /inventory/alerts?tenantId=c4bfc976-9f18-4513-aef7-0805b3885a53\n    at callback (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/routes-resolver.js:77:19)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:23\n    at Layer.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/lib/layer.js:152:17)\n    at trimPrefix (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:342:13)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:297:9\n    at processParams (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:582:12)\n    at next (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/index.js:291:5)\n    at read (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/body-parser/lib/read.js:54:5)\n    at urlencodedParser (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/body-parser/lib/types/urlencoded.js:58:5)\n    at Layer.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/router/lib/layer.js:152:17)",
-    "name": "NotFoundException"
+    "message": "Unauthorized",
+    "stack": "UnauthorizedException: Unauthorized\n    at JwtAuthGuard.handleRequest (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:60:30)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:44:124\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/passport/dist/auth.guard.js:83:24\n    at allFailed (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:110:18)\n    at attempt (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:183:28)\n    at strategy.fail (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport/lib/middleware/authenticate.js:314:9)\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/passport-jwt/lib/strategy.js:106:33\n    at /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:190:16\n    at getSecret (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:97:14)\n    at module.exports [as verify] (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/jsonwebtoken/verify.js:101:10)",
+    "name": "UnauthorizedException"
   }
 }

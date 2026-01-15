@@ -13,5 +13,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
+  console.log('SMTP_HOST present:', !!process.env.SMTP_HOST);
+  console.log('SMTP_USER present:', !!process.env.SMTP_USER);
 }
 bootstrap();

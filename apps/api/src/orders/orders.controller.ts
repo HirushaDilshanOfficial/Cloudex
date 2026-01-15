@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Query, Request, HttpException, HttpStatus, Patch } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -40,5 +40,11 @@ export class OrdersController {
     @Roles(UserRole.CASHIER, UserRole.MANAGER, UserRole.ADMIN)
     findOne(@Param('id') id: string) {
         return this.ordersService.findOne(id);
+    }
+
+    @Patch(':id')
+    @Roles(UserRole.CASHIER, UserRole.MANAGER, UserRole.ADMIN)
+    update(@Param('id') id: string, @Body() updateOrderDto: any) {
+        return this.ordersService.update(id, updateOrderDto);
     }
 }

@@ -14,6 +14,7 @@ import { TablesModule } from './tables/tables.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -21,6 +22,7 @@ import { AppService } from './app.service';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env', // Explicitly look for .env in the current directory (apps/api)
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -45,6 +47,7 @@ import { AppService } from './app.service';
     AnalyticsModule,
     BranchesModule,
     CustomersModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,18 +2,20 @@
   "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
   "items": [
     {
-      "productId": "a2f434f4-0f50-40f7-8277-d14913f4351e",
-      "quantity": 2,
-      "price": 676
+      "productId": "b9b3ad95-9c10-4f63-8cae-1bac8b5920eb",
+      "quantity": 1,
+      "price": 7678
     }
   ],
-  "totalAmount": 1487.2,
+  "totalAmount": 8445.8,
   "orderType": "dining",
+  "paymentMethod": "CASH",
+  "status": "pending",
   "user": {
-    "userId": "345dc176-2cac-48aa-8cf1-f2dcaff77b03",
-    "email": "cashier3@gmail.com",
-    "role": "cashier",
+    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
+    "email": "admin@gmail.com",
+    "role": "admin",
     "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
-    "branchId": "b2070c14-ce0f-4484-8aa6-9c1f315de79b"
+    "branchId": null
   }
 }
