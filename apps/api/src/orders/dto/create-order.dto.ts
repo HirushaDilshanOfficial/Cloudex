@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsArray, ValidateNested, IsNumber, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateOrderItemDto } from './create-order-item.dto';
-import { OrderType } from '../entities/order.entity';
+import { OrderType, PaymentMethod, OrderStatus } from '../entities/order.entity';
 
 export class CreateOrderDto {
     @IsUUID()
@@ -33,4 +33,12 @@ export class CreateOrderDto {
     @IsOptional()
     @IsEnum(OrderType)
     orderType?: OrderType;
+
+    @IsOptional()
+    @IsEnum(PaymentMethod)
+    paymentMethod?: PaymentMethod;
+
+    @IsOptional()
+    @IsEnum(OrderStatus)
+    status?: OrderStatus;
 }

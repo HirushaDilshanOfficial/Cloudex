@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { EventsGateway } from '../events/events.gateway';
@@ -81,11 +81,12 @@ export class OrdersService {
                 tableId,
                 cashierId,
                 totalAmount,
-                status: OrderStatus.PENDING,
+                status: createOrderDto.status || OrderStatus.PENDING,
                 branchId,
                 orderNumber,
                 orderType: createOrderDto.orderType || 'dining',
                 customerId: createOrderDto.customerId,
+                paymentMethod: createOrderDto.paymentMethod || PaymentMethod.CASH,
             });
 
             console.log('Attempting to save order with data:', JSON.stringify({
@@ -224,5 +225,11 @@ export class OrdersService {
             throw new Error('Order not found');
         }
         return order;
+    }
+
+    async update(id: string, updateOrderDto: any): Promise<Order> {
+        const order = await this.findOne(id);
+        Object.assign(order, updateOrderDto);
+        return this.ordersRepository.save(order);
     }
 }
