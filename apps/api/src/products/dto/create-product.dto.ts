@@ -12,6 +12,10 @@ export class CreateProductDto {
     @IsNumber()
     price: number;
 
+    @IsNumber()
+    @IsOptional()
+    costPrice?: number;
+
     @IsString()
     @IsOptional()
     category?: string;

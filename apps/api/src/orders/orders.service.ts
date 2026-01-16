@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
+import { Order, OrderStatus, PaymentMethod, PaymentStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { EventsGateway } from '../events/events.gateway';
@@ -87,6 +87,7 @@ export class OrdersService {
                 orderType: createOrderDto.orderType || 'dining',
                 customerId: createOrderDto.customerId,
                 paymentMethod: createOrderDto.paymentMethod || PaymentMethod.CASH,
+                paymentStatus: createOrderDto.paymentStatus || PaymentStatus.PENDING,
             });
 
             console.log('Attempting to save order with data:', JSON.stringify({

@@ -33,6 +33,7 @@ interface Order {
     };
     orderNumber?: string;
     orderType?: 'dining' | 'takeaway';
+    paymentStatus?: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 }
 
 interface Branch {
@@ -107,6 +108,29 @@ export default function OrderHistoryPage() {
         }
     };
 
+    const getPaymentStatusColor = (status: string) => {
+        switch (status) {
+            case 'PAID': return 'bg-green-100 text-green-700';
+            case 'FAILED': return 'bg-red-100 text-red-700';
+            case 'REFUNDED': return 'bg-orange-100 text-orange-700';
+            default: return 'bg-yellow-100 text-yellow-700';
+        }
+    };
+
+    const updatePaymentStatus = async (orderId: string, newStatus: string) => {
+        try {
+            await api.patch(`/orders/${orderId}`, { paymentStatus: newStatus });
+            // Refresh orders
+            fetchOrders();
+            // Update selected order if open
+            if (selectedOrder && selectedOrder.id === orderId) {
+                setSelectedOrder({ ...selectedOrder, paymentStatus: newStatus as any });
+            }
+        } catch (error) {
+            console.error('Failed to update payment status', error);
+        }
+    };
+
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -177,6 +201,7 @@ export default function OrderHistoryPage() {
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Table</th>
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Items</th>
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Total</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Payment</th>
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase text-right">Actions</th>
                             </tr>
@@ -214,6 +239,11 @@ export default function OrderHistoryPage() {
                                     </td>
                                     <td className="px-6 py-4 font-medium text-gray-900">
                                         ${calculateTotal(order.items).toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getPaymentStatusColor(order.paymentStatus || 'PENDING')}`}>
+                                            {order.paymentStatus === 'PENDING' || !order.paymentStatus ? 'Unpaid' : order.paymentStatus}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getStatusColor(order.status)}`}>
@@ -270,6 +300,24 @@ export default function OrderHistoryPage() {
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getStatusColor(selectedOrder.status)}`}>
                                     {selectedOrder.status}
                                 </span>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-500 mb-1">Payment Status</p>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getPaymentStatusColor(selectedOrder.paymentStatus || 'PENDING')}`}>
+                                        {selectedOrder.paymentStatus === 'PENDING' || !selectedOrder.paymentStatus ? 'Unpaid' : selectedOrder.paymentStatus}
+                                    </span>
+                                    <select
+                                        value={selectedOrder.paymentStatus || 'PENDING'}
+                                        onChange={(e) => updatePaymentStatus(selectedOrder.id, e.target.value)}
+                                        className="ml-2 text-sm border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+                                    >
+                                        <option value="PENDING">Unpaid</option>
+                                        <option value="PAID">Paid</option>
+                                        <option value="FAILED">Failed</option>
+                                        <option value="REFUNDED">Refunded</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-lg">
                                 <p className="text-sm text-gray-500 mb-1">Date</p>
