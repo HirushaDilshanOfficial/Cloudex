@@ -8,6 +8,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useEffect, useState } from 'react';
 import { PaymentModal } from './payment-modal';
 import { ReceiptModal } from './receipt-modal';
+import { CustomerModal } from './customer-modal';
 
 interface Table {
     id: string;
@@ -142,12 +143,12 @@ export function CartSidebar() {
             if (lastOrder && lastOrder.status === 'pending') {
                 // Paying for an existing pending order
                 await api.patch(`/orders/${lastOrder.id}`, {
-                    status: 'completed',
+                    paymentStatus: 'PAID',
                     paymentMethod: details.method.toUpperCase()
                 });
 
                 // Update local state
-                const updatedOrder = { ...lastOrder, status: 'completed', paymentMethod: details.method.toUpperCase() };
+                const updatedOrder = { ...lastOrder, paymentStatus: 'PAID', paymentMethod: details.method.toUpperCase() };
                 setLastOrder(updatedOrder);
             } else {
                 // Creating a new order
@@ -163,7 +164,8 @@ export function CartSidebar() {
                     customerId: selectedCustomer?.id,
                     totalAmount: Number(finalTotal.toFixed(2)),
                     paymentMethod: details.method.toUpperCase(),
-                    status: 'completed'
+                    paymentStatus: 'PAID',
+                    status: 'pending'
                 };
 
                 const response = await api.post('/orders', orderData);
@@ -465,7 +467,10 @@ export function CartSidebar() {
                                         </button>
                                     ))}
                                 <button
-                                    onClick={() => setShowCustomerModal(true)}
+                                    onClick={() => {
+                                        setNewCustomerName(customerSearch);
+                                        setShowCustomerModal(true);
+                                    }}
                                     className="w-full text-left p-2 hover:bg-gray-50 text-sm text-primary font-medium flex items-center gap-1"
                                 >
                                     <Plus size={14} /> Create "{customerSearch}"
@@ -475,6 +480,29 @@ export function CartSidebar() {
                     </div>
                 )}
             </div>
+
+            <CustomerModal
+                isOpen={showCustomerModal}
+                onClose={() => setShowCustomerModal(false)}
+                initialName={newCustomerName}
+                onSave={async (customerData) => {
+                    try {
+                        const response = await api.post('/customers', {
+                            ...customerData,
+                            tenantId
+                        });
+                        const newCustomer = response.data;
+                        setCustomers([...customers, newCustomer]);
+                        setSelectedCustomer(newCustomer);
+                        setCustomerSearch('');
+                        toast.success('Customer created successfully');
+                    } catch (error) {
+                        console.error('Failed to create customer', error);
+                        toast.error('Failed to create customer');
+                        throw error;
+                    }
+                }}
+            />
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">

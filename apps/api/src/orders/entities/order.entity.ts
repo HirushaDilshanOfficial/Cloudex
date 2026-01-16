@@ -23,6 +23,13 @@ export enum PaymentMethod {
     CARD = 'CARD',
 }
 
+export enum PaymentStatus {
+    PENDING = 'PENDING',
+    PAID = 'PAID',
+    FAILED = 'FAILED',
+    REFUNDED = 'REFUNDED',
+}
+
 @Entity('orders')
 export class Order extends BaseEntity {
     @Column({
@@ -45,6 +52,13 @@ export class Order extends BaseEntity {
         default: PaymentMethod.CASH,
     })
     paymentMethod: PaymentMethod;
+
+    @Column({
+        type: 'enum',
+        enum: PaymentStatus,
+        default: PaymentStatus.PENDING,
+    })
+    paymentStatus: PaymentStatus;
 
     @Column({ nullable: true })
     cancellationReason: string;

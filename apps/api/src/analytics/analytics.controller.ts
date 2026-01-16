@@ -16,6 +16,18 @@ export class AnalyticsController {
         return this.analyticsService.getDailySales(tenantId);
     }
 
+    @Get('sales/weekly')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    getWeeklySales(@Query('tenantId') tenantId: string) {
+        return this.analyticsService.getWeeklySales(tenantId);
+    }
+
+    @Get('sales/monthly')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    getMonthlySales(@Query('tenantId') tenantId: string) {
+        return this.analyticsService.getMonthlySales(tenantId);
+    }
+
     @Get('sales/trend')
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
     getSalesTrend(@Query('tenantId') tenantId: string, @Query('days') days: number) {

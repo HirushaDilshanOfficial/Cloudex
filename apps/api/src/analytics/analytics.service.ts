@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Order, OrderStatus } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
-import { startOfDay, endOfDay, subDays, format } from 'date-fns';
+import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from 'date-fns';
 
 @Injectable()
 export class AnalyticsService {
@@ -18,23 +18,53 @@ export class AnalyticsService {
         const today = new Date();
         const start = startOfDay(today);
         const end = endOfDay(today);
+        return this.getStatsForPeriod(tenantId, start, end);
+    }
 
-        const todayOrders = await this.ordersRepository.find({
+    async getWeeklySales(tenantId: string) {
+        const today = new Date();
+        const start = startOfWeek(today, { weekStartsOn: 1 }); // Monday start
+        const end = endOfWeek(today, { weekStartsOn: 1 });
+        return this.getStatsForPeriod(tenantId, start, end);
+    }
+
+    async getMonthlySales(tenantId: string) {
+        const today = new Date();
+        const start = startOfMonth(today);
+        const end = endOfMonth(today);
+        return this.getStatsForPeriod(tenantId, start, end);
+    }
+
+    private async getStatsForPeriod(tenantId: string, start: Date, end: Date) {
+        const orders = await this.ordersRepository.find({
             where: {
                 tenantId,
                 createdAt: Between(start, end),
                 status: OrderStatus.COMPLETED,
             },
+            relations: ['items', 'items.product'],
         });
 
-        const totalRevenue = todayOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
-        const totalOrders = todayOrders.length;
+        const totalRevenue = orders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
+        const totalOrders = orders.length;
         const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        let totalCost = 0;
+        for (const order of orders) {
+            for (const item of order.items) {
+                // Use current product cost as an approximation since we didn't store historical cost
+                const cost = item.product?.costPrice ? Number(item.product.costPrice) : 0;
+                totalCost += cost * item.quantity;
+            }
+        }
+
+        const totalProfit = totalRevenue - totalCost;
 
         return {
             totalRevenue,
             totalOrders,
             avgOrderValue,
+            totalProfit,
         };
     }
 

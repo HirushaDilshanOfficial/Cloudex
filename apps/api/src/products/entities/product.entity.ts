@@ -13,6 +13,9 @@ export class Product extends BaseEntity {
     @Column('decimal', { precision: 10, scale: 2 })
     price: number;
 
+    @Column('decimal', { precision: 10, scale: 2, nullable: true })
+    costPrice: number;
+
     @Column({ nullable: true })
     category: string;
 
