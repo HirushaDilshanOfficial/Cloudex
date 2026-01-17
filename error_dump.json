@@ -1,14 +1,25 @@
 {
-  "timestamp": "2026-01-15T16:03:36.889Z",
-  "path": "/auth/login",
-  "method": "POST",
+  "timestamp": "2026-01-16T18:45:36.892Z",
+  "path": "/products/4578d2cf-3a04-43a3-968d-fb04ab574d27",
+  "method": "PATCH",
   "body": {
-    "email": "admin@gmail.com",
-    "password": "123456"
+    "name": "Garlic Bread",
+    "description": "Toasted bread slices topped with garlic butter and herbs.",
+    "price": "650",
+    "category": "Appetizer",
+    "isAvailable": "true",
+    "tenantId": "a1551256-3f15-4135-911f-305a08758959"
+  },
+  "user": {
+    "userId": "1ff4a3a0-1180-470d-b6b1-84b9910c1b3d",
+    "email": "hirushadilshan255@gmail.com",
+    "role": "admin",
+    "tenantId": "a1551256-3f15-4135-911f-305a08758959",
+    "branchId": null
   },
   "error": {
-    "message": "",
-    "stack": "AggregateError [ECONNREFUSED]: \n    at internalConnectMultiple (node:net:1134:18)\n    at afterConnectMultiple (node:net:1715:7)",
-    "name": "AggregateError"
+    "message": "Request Timeout",
+    "http_code": 499,
+    "name": "TimeoutError"
   }
 }

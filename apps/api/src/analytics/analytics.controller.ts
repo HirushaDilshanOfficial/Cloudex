@@ -39,4 +39,10 @@ export class AnalyticsController {
     getTopSellingProducts(@Query('tenantId') tenantId: string) {
         return this.analyticsService.getTopSellingProducts(tenantId);
     }
+
+    @Get('orders/recent')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    getRecentOrders(@Query('tenantId') tenantId: string) {
+        return this.analyticsService.getRecentOrders(tenantId);
+    }
 }

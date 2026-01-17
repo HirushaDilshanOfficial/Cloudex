@@ -51,16 +51,30 @@ export class UsersService {
     }
 
     async update(id: string, updateUserDto: any): Promise<User> {
+        const fs = require('fs');
         try {
+            // Debug logging
+            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/debug_user_update.json', JSON.stringify(updateUserDto, null, 2));
+
             if (updateUserDto.password) {
                 const salt = await bcrypt.genSalt();
                 updateUserDto.passwordHash = await bcrypt.hash(updateUserDto.password, salt);
-                delete updateUserDto.password;
             }
+            // Always delete password field so it's not passed to TypeORM
+            delete updateUserDto.password;
+
+            // Remove other potential non-column fields if necessary
+            // e.g. confirmPassword if it exists
+
             await this.usersRepository.update(id, updateUserDto);
             return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
         } catch (error) {
             console.error('Error updating user:', error);
+            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/debug_user_update_error.json', JSON.stringify({
+                error: error.message,
+                stack: error.stack,
+                dto: updateUserDto
+            }, null, 2));
             throw error;
         }
     }

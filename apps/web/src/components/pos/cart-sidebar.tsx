@@ -1,6 +1,7 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cart-store';
-import { Trash2, Minus, Plus, Armchair, CheckCircle, Users } from 'lucide-react';
+import { Trash2, Minus, Plus, Armchair, CheckCircle, Users, Search, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { PaymentModal } from './payment-modal';
 import { ReceiptModal } from './receipt-modal';
 import { CustomerModal } from './customer-modal';
+import { ConfirmationModal } from '../ui/confirmation-modal';
 
 interface Table {
     id: string;
@@ -35,6 +37,7 @@ export function CartSidebar() {
     const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerModal, setShowCustomerModal] = useState(false);
+    const [isEditingCustomer, setIsEditingCustomer] = useState(false);
     const [newCustomerName, setNewCustomerName] = useState('');
 
     const [newCustomerPhone, setNewCustomerPhone] = useState('');
@@ -53,6 +56,31 @@ export function CartSidebar() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastOrder, setLastOrder] = useState<any>(null);
     const [paymentDetails, setPaymentDetails] = useState<{ method: 'cash' | 'card'; tendered: number; change: number } | undefined>({ method: 'cash', tendered: 0, change: 0 });
+
+    // Confirmation Modal State
+    const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+    const [tableToClear, setTableToClear] = useState<string | null>(null);
+
+    const handleClearTable = async () => {
+        if (!tableToClear) return;
+        try {
+            await api.patch(`/tables/${tableToClear}/status`, { status: 'available' });
+            toast.success('Table cleared');
+            // Refresh tables
+            const response = await api.get(`/tables?tenantId=${tenantId}`);
+            const validTables = response.data.filter((t: Table) =>
+                (t.status === 'available' || t.status === 'occupied') &&
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.id)
+            );
+            setTables(validTables);
+            if (selectedTable === tableToClear) {
+                setSelectedTable('');
+            }
+        } catch (error) {
+            console.error('Failed to clear table', error);
+            toast.error('Failed to clear table');
+        }
+    };
 
     const playSuccessSound = () => {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'); // Simple "Cash Register" or "Ding" sound
@@ -74,20 +102,21 @@ export function CartSidebar() {
         }
     }, [token]);
 
-    useEffect(() => {
-        const fetchTables = async () => {
-            try {
-                const response = await api.get(`/tables?tenantId=${tenantId}`);
-                const validTables = response.data.filter((t: Table) =>
-                    (t.status === 'available' || t.status === 'occupied') &&
-                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.id)
-                );
-                setTables(validTables);
-            } catch (error) {
-                console.error('Failed to fetch tables', error);
-            }
-        };
+    const fetchTables = async () => {
+        if (!token || !tenantId) return;
+        try {
+            const response = await api.get(`/tables?tenantId=${tenantId}`);
+            const validTables = response.data.filter((t: Table) =>
+                (t.status === 'available' || t.status === 'occupied') &&
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.id)
+            );
+            setTables(validTables);
+        } catch (error) {
+            console.error('Failed to fetch tables', error);
+        }
+    };
 
+    useEffect(() => {
         if (token && tenantId) {
             fetchTables();
             // Fetch customers
@@ -102,6 +131,13 @@ export function CartSidebar() {
         }
     }, [token, tenantId]);
 
+    const [redeemPoints, setRedeemPoints] = useState(0);
+
+    // Reset points when customer changes
+    useEffect(() => {
+        setRedeemPoints(0);
+    }, [selectedCustomer]);
+
     const calculateTotals = () => {
         const subtotal = total();
         const tax = subtotal * 0.1;
@@ -114,17 +150,21 @@ export function CartSidebar() {
             discountAmount = subtotalWithTax * (discount.value / 100);
         }
 
+        // Points Discount (1 Point = LKR 10.00)
+        const pointsDiscount = redeemPoints * 10.00;
+        discountAmount += pointsDiscount;
+
         const totalAfterDiscount = Math.max(0, subtotalWithTax - discountAmount);
         const serviceCharge = totalAfterDiscount * serviceChargeRate;
         const finalTotal = totalAfterDiscount + serviceCharge;
 
-        return { subtotal, tax, discountAmount, serviceCharge, finalTotal };
+        return { subtotal, tax, discountAmount, pointsDiscount, serviceCharge, finalTotal };
     };
 
     const handlePaymentComplete = async (details: { method: 'cash' | 'card'; tendered: number; change: number }) => {
         setIsCheckingOut(true);
         try {
-            // Filter out invalid items (self-healing)
+            // ... (existing validation logic)
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             const validItems = items.filter(item => uuidRegex.test(item.productId));
 
@@ -150,6 +190,9 @@ export function CartSidebar() {
                 // Update local state
                 const updatedOrder = { ...lastOrder, paymentStatus: 'PAID', paymentMethod: details.method.toUpperCase() };
                 setLastOrder(updatedOrder);
+
+                // Remove from pending orders list
+                setPendingOrders(prev => prev.filter(o => o.id !== lastOrder.id));
             } else {
                 // Creating a new order
                 const orderData = {
@@ -165,11 +208,28 @@ export function CartSidebar() {
                     totalAmount: Number(finalTotal.toFixed(2)),
                     paymentMethod: details.method.toUpperCase(),
                     paymentStatus: 'PAID',
-                    status: 'pending'
+                    status: 'pending',
+                    redeemedPoints: redeemPoints > 0 ? redeemPoints : undefined
                 };
 
                 const response = await api.post('/orders', orderData);
                 setLastOrder(response.data);
+
+                // Refresh tables to reflect locked status
+                if (orderType === 'dining' && selectedTable) {
+                    fetchTables();
+                }
+
+                // Update local customer state with new points
+                if (response.data.customer) {
+                    setCustomers(prev => prev.map(c =>
+                        c.id === response.data.customer.id ? response.data.customer : c
+                    ));
+                    // If the selected customer is the one who just ordered, update them too
+                    if (selectedCustomer && selectedCustomer.id === response.data.customer.id) {
+                        setSelectedCustomer(response.data.customer);
+                    }
+                }
             }
 
             setPaymentDetails(details);
@@ -198,357 +258,375 @@ export function CartSidebar() {
         setSelectedTable('');
         setOrderType('dining');
         setSelectedCustomer(null);
+        setRedeemPoints(0);
         setShowReceiptModal(false);
         setLastOrder(null);
     };
 
-    const handlePrintBill = async () => {
-        // Filter out invalid items (self-healing)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const validItems = items.filter(item => uuidRegex.test(item.productId));
-
-        if (validItems.length === 0) {
-            toast.error('Cart is empty or contains invalid items.');
+    const handleCreateCustomer = async (data: { name: string; phoneNumber: string; email: string }) => {
+        if (!data.name.trim()) {
+            toast.error('Customer name is required');
             return;
         }
+        try {
+            const response = await api.post('/customers', {
+                name: data.name,
+                phoneNumber: data.phoneNumber,
+                email: data.email || '',
+                tenantId
+            });
+            setSelectedCustomer(response.data);
+            setCustomers([...customers, response.data]);
+            toast.success('Customer created');
+        } catch (error) {
+            console.error('Failed to create customer', error);
+            toast.error('Failed to create customer');
+        }
+    };
 
-        const { finalTotal } = calculateTotals();
+    const handleUpdateCustomer = async (data: { name: string; phoneNumber: string; email: string }) => {
+        if (!selectedCustomer) return;
+        if (!data.name.trim()) {
+            toast.error('Customer name is required');
+            return;
+        }
+        try {
+            const response = await api.patch(`/customers/${selectedCustomer.id}`, {
+                name: data.name,
+                phoneNumber: data.phoneNumber,
+                email: data.email || '',
+            });
+            setSelectedCustomer(response.data);
+            setCustomers(customers.map(c => c.id === response.data.id ? response.data : c));
+            toast.success('Customer updated');
+        } catch (error) {
+            console.error('Failed to update customer', error);
+            toast.error('Failed to update customer');
+        }
+    };
 
-        const orderData = {
-            items: validItems.map(item => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price || 0
-            })),
-            tenantId,
-            tableId: orderType === 'dining' ? (selectedTable || undefined) : undefined,
-            orderType,
-            customerId: selectedCustomer?.id,
-            totalAmount: Number(finalTotal.toFixed(2)),
-            paymentMethod: 'CASH', // Default for pending, will be updated on payment
-            status: 'pending' // Explicitly pending
-        };
+    const handlePrintBill = async () => {
+        if (items.length === 0) return;
 
         try {
+            // 1. Create Pending Order
+            const { finalTotal } = calculateTotals();
+            const orderData = {
+                items: items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price || 0
+                })),
+                tenantId,
+                tableId: orderType === 'dining' ? (selectedTable || undefined) : undefined,
+                orderType,
+                customerId: selectedCustomer?.id,
+                totalAmount: Number(finalTotal.toFixed(2)),
+                paymentStatus: 'PENDING',
+                status: 'pending',
+                redeemedPoints: redeemPoints > 0 ? redeemPoints : undefined
+            };
+
             const response = await api.post('/orders', orderData);
-            const savedOrder = response.data;
+            const newOrder = response.data;
+            setLastOrder(newOrder);
 
-            // Add discount info for display if needed (backend doesn't store it yet, but we can show it on this receipt)
-            savedOrder.discount = discount.value > 0 ? discount : undefined;
-            savedOrder.serviceCharge = serviceChargeRate > 0 ? (finalTotal / (1 + serviceChargeRate)) * serviceChargeRate : 0;
-
-            setLastOrder(savedOrder);
-            setPaymentDetails(undefined as any); // Clear payment details for Proforma mode
-            setShowReceiptModal(true);
-
-            // Clear cart after saving
+            // 2. Clear Cart
             clearCart();
-            toast.success('Order saved as Pending');
-        } catch (error) {
-            console.error('Failed to save pending order', error);
-            toast.error('Failed to save order');
+            // Reset local states but keep table/customer if needed or reset them too?
+            // User asked to clear items, usually implies resetting the "current order" context.
+            // Let's reset order-specific state but maybe keep table selected if they want to add more?
+            // "add karapu item clear wenna one" -> clear added items.
+            // Let's fully reset for a clean slate like "New Order"
+            setRedeemPoints(0);
+            // We keep selectedTable and selectedCustomer for convenience or reset?
+            // Usually printing bill means this "session" is done or paused.
+            // Let's keep it simple and just clear items for now as requested.
+
+            // 3. Print (using a timeout to ensure state updates and DOM rendering)
+            setTimeout(() => {
+                window.print();
+            }, 100);
+
+            toast.success('Order saved as Pending and Bill printed');
+
+        } catch (error: any) {
+            console.error('Failed to print bill', error);
+            toast.error('Failed to save order for printing');
         }
     };
 
     const handleCheckoutClick = () => {
-        // Filter out invalid items (self-healing)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const validItems = items.filter(item => uuidRegex.test(item.productId));
-
-        if (validItems.length === 0) {
-            toast.error('Cart contained only invalid items and has been cleared.');
-            clearCart();
+        if (orderType === 'dining' && !selectedTable) {
+            toast.error('Please select a table for dining orders');
             return;
         }
 
-        setLastOrder(null); // Ensure we are starting a fresh order
-        setShowPaymentModal(true);
+        if (orderType === 'dining' && selectedTable) {
+            const table = tables.find(t => t.id === selectedTable);
+            if (table?.status === 'occupied') {
+                toast.error('Table is occupied. Please clear it first.');
+                return;
+            }
+        }
+
+        const { finalTotal } = calculateTotals();
+        if (finalTotal > 0) {
+            setShowPaymentModal(true);
+        } else {
+            handlePaymentComplete({ method: 'cash', tendered: 0, change: 0 });
+        }
     };
 
+    const fetchPendingOrders = async () => {
+        if (!token || !tenantId) return;
+        try {
+            const response = await api.get(`/orders?tenantId=${tenantId}&status=pending&paymentStatus=PENDING&_t=${Date.now()}`);
+            setPendingOrders(response.data);
+            setShowPendingOrders(true);
+        } catch (error) {
+            console.error('Failed to fetch pending orders', error);
+            toast.error('Failed to fetch pending orders');
+        }
+    };
+
+
+
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white shadow-xl border-l border-gray-200 w-[400px]">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
-                <h2 className="text-xl font-bold text-gray-800 mb-3">Current Order</h2>
-
-                {/* Order Type Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-lg mb-3">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    Current Order
+                </h2>
+                <div className="flex gap-2">
                     <button
-                        onClick={() => setOrderType('dining')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${orderType === 'dining'
-                            ? 'bg-white text-primary shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        onClick={fetchPendingOrders}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Pending Orders"
                     >
-                        Dining
+                        <Clock size={20} />
                     </button>
                     <button
-                        onClick={() => setOrderType('takeaway')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${orderType === 'takeaway'
-                            ? 'bg-white text-primary shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        onClick={clearCart}
+                        disabled={items.length === 0}
+                        className="text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors p-2 hover:bg-red-50 rounded-lg"
+                        title="Clear Cart"
                     >
-                        Takeaway
+                        <Trash2 size={20} />
                     </button>
                 </div>
-
-                <div className="mt-2">
-                    <div className="mt-2 flex gap-2">
-                        <select
-                            value={selectedTable}
-                            onChange={(e) => setSelectedTable(e.target.value)}
-                            className="flex-1 p-2 border rounded-lg text-sm bg-gray-50 border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            disabled={orderType === 'takeaway'}
-                        >
-                            <option value="">{orderType === 'takeaway' ? 'No Table (Takeaway)' : 'Select Table (Optional)'}</option>
-                            {orderType === 'dining' && tables.length === 0 && (
-                                <option value="" disabled>No tables found for this branch</option>
-                            )}
-                            {orderType === 'dining' && tables.map((table) => (
-                                <option key={table.id} value={table.id}>
-                                    {table.name} {table.status === 'occupied' ? '(Occupied)' : ''}
-                                </option>
-                            ))}
-                        </select>
-                        {orderType === 'dining' && selectedTable && (
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        await api.patch(`/tables/${selectedTable}/status`, { status: 'available' });
-                                        toast.success('Table cleared');
-                                        // Refresh tables
-                                        const response = await api.get(`/tables?tenantId=${tenantId}`);
-                                        const validTables = response.data.filter((t: Table) =>
-                                            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.id)
-                                        );
-                                        setTables(validTables);
-                                    } catch (error) {
-                                        toast.error('Failed to clear table');
-                                    }
-                                }}
-                                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm font-medium"
-                                title="Clear Table (Make Available)"
-                            >
-                                Clear
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Pending Orders Button */}
-                <button
-                    onClick={() => {
-                        setShowPendingOrders(true);
-                        // Fetch pending orders
-                        api.get(`/orders?tenantId=${tenantId}`) // We need to filter by status=pending in frontend or backend
-                            .then(res => {
-                                const pending = res.data.filter((o: any) => o.status === 'pending');
-                                setPendingOrders(pending);
-                            })
-                            .catch(err => console.error('Failed to fetch orders', err));
-                    }}
-                    className="mt-2 w-full py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-sm font-medium hover:bg-yellow-100 flex items-center justify-center gap-2"
-                >
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                    View Pending Orders
-                </button>
             </div>
 
-            {/* Pending Orders Modal */}
-            {
-                showPendingOrders && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-                            <div className="p-4 border-b bg-gray-50 rounded-t-xl">
-                                <div className="flex justify-between items-center mb-3">
-                                    <h3 className="font-bold text-lg">Pending Orders</h3>
-                                    <button onClick={() => setShowPendingOrders(false)} className="text-gray-500 hover:text-gray-700">✕</button>
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Search by Order # or Amount..."
-                                    value={pendingOrderSearch}
-                                    onChange={(e) => setPendingOrderSearch(e.target.value)}
-                                    className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                />
-                            </div>
-                            <div className="p-4 overflow-y-auto flex-1">
-                                {pendingOrders.filter(order =>
-                                    (order.orderNumber?.toLowerCase() || '').includes(pendingOrderSearch.toLowerCase()) ||
-                                    (order.totalAmount?.toString() || '').includes(pendingOrderSearch)
-                                ).length === 0 ? (
-                                    <p className="text-center text-gray-500 py-8">No matching pending orders found.</p>
-                                ) : (
-                                    <div className="grid gap-4">
-                                        {pendingOrders
-                                            .filter(order =>
-                                                (order.orderNumber?.toLowerCase() || '').includes(pendingOrderSearch.toLowerCase()) ||
-                                                (order.totalAmount?.toString() || '').includes(pendingOrderSearch)
-                                            )
-                                            .map(order => (
-                                                <div key={order.id} className="border rounded-lg p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="font-bold text-lg">{order.orderNumber}</span>
-                                                            <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full uppercase font-bold">Pending</span>
-                                                        </div>
-                                                        <p className="text-sm text-gray-600">
-                                                            {new Date(order.createdAt).toLocaleString()} • {order.items?.length} Items
-                                                        </p>
-                                                        <p className="text-sm font-medium text-gray-800 mt-1">
-                                                            Total: ${Number(order.totalAmount).toFixed(2)}
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            setLastOrder(order);
-                                                            setShowPendingOrders(false);
-                                                            setShowPaymentModal(true);
-                                                            // We need to update handlePaymentComplete to handle existing order payment
-                                                        }}
-                                                        className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90"
-                                                    >
-                                                        Pay Now
-                                                    </button>
-                                                </div>
-                                            ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* Customer Selection */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                    <Users size={16} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Customer</span>
-                </div>
-                {selectedCustomer ? (
-                    <div className="flex justify-between items-center bg-white p-2 rounded border border-green-200">
-                        <div>
-                            <p className="text-sm font-bold text-gray-800">{selectedCustomer.name}</p>
-                            <p className="text-xs text-gray-500">{selectedCustomer.phoneNumber}</p>
-                        </div>
-                        <button
-                            onClick={() => setSelectedCustomer(null)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                        >
-                            <Trash2 size={14} />
-                        </button>
-                    </div>
-                ) : (
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search customer (phone/name)..."
-                            value={customerSearch}
-                            onChange={(e) => setCustomerSearch(e.target.value)}
-                            className="w-full p-2 text-sm border rounded bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        />
-                        {customerSearch.length > 1 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto">
-                                {customers
-                                    .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phoneNumber?.includes(customerSearch))
-                                    .map(c => (
-                                        <button
-                                            key={c.id}
-                                            onClick={() => {
-                                                setSelectedCustomer(c);
-                                                setCustomerSearch('');
-                                            }}
-                                            className="w-full text-left p-2 hover:bg-gray-50 text-sm border-b last:border-0"
-                                        >
-                                            <div className="font-medium">{c.name}</div>
-                                            <div className="text-xs text-gray-500">{c.phoneNumber}</div>
-                                        </button>
-                                    ))}
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Table & Order Type */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Table</label>
+                        <div className="flex gap-2">
+                            <select
+                                value={selectedTable}
+                                onChange={(e) => setSelectedTable(e.target.value)}
+                                disabled={orderType === 'takeaway'}
+                                className={`flex-1 p-2 border rounded-lg text-sm outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${tables.find(t => t.id === selectedTable)?.status === 'occupied'
+                                    ? 'bg-red-50 border-red-200 text-red-600'
+                                    : 'bg-gray-50 border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary'
+                                    }`}
+                            >
+                                <option value="">Select Table</option>
+                                {tables.map(t => (
+                                    <option
+                                        key={t.id}
+                                        value={t.id}
+                                    >
+                                        {t.name} {t.status === 'occupied' ? '(Occupied)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedTable && tables.find(t => t.id === selectedTable)?.status === 'occupied' && (
                                 <button
                                     onClick={() => {
-                                        setNewCustomerName(customerSearch);
+                                        setTableToClear(selectedTable);
+                                        setShowClearConfirmation(true);
+                                    }}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-red-200 bg-white shadow-sm"
+                                    title="Clear Table"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                            <button
+                                onClick={() => setOrderType('dining')}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${orderType === 'dining' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Dining
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setOrderType('takeaway');
+                                    setSelectedTable('');
+                                }}
+                                className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${orderType === 'takeaway' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Takeaway
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Customer Section */}
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Users size={16} className="text-primary" /> Customer
+                        </span>
+                        <button
+                            onClick={() => {
+                                setIsEditingCustomer(false);
+                                setShowCustomerModal(true);
+                            }}
+                            className="text-xs text-primary font-bold hover:underline"
+                        >
+                            New Customer
+                        </button>
+                    </div>
+
+                    {!selectedCustomer && (
+                        <div className="relative mb-2">
+                            <Search className="absolute left-2 top-2.5 text-gray-400" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search by name or phone..."
+                                value={customerSearch}
+                                onChange={(e) => setCustomerSearch(e.target.value)}
+                                className="w-full pl-8 p-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary"
+                            />
+                            {customerSearch && (
+                                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-10 max-h-40 overflow-y-auto">
+                                    {customers
+                                        .filter(c =>
+                                            (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) ||
+                                            (c.phoneNumber || '').includes(customerSearch)
+                                        )
+                                        .map(c => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => {
+                                                    setSelectedCustomer(c);
+                                                    setCustomerSearch('');
+                                                }}
+                                                className="w-full text-left p-2 hover:bg-gray-50 text-sm flex justify-between items-center"
+                                            >
+                                                <span>{c.name}</span>
+                                                <span className="text-xs text-gray-400">{c.phoneNumber}</span>
+                                            </button>
+                                        ))
+                                    }
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {selectedCustomer ? (
+                        <div className="bg-white p-2 rounded border border-gray-200 mb-2 flex justify-between items-center">
+                            <div>
+                                <p className="font-bold text-sm text-gray-800">{selectedCustomer.name}</p>
+                                <p className="text-xs text-gray-500">{selectedCustomer.phoneNumber}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setIsEditingCustomer(true);
                                         setShowCustomerModal(true);
                                     }}
-                                    className="w-full text-left p-2 hover:bg-gray-50 text-sm text-primary font-medium flex items-center gap-1"
+                                    className="text-xs text-blue-500 hover:underline"
                                 >
-                                    <Plus size={14} /> Create "{customerSearch}"
+                                    Edit
                                 </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <CustomerModal
-                isOpen={showCustomerModal}
-                onClose={() => setShowCustomerModal(false)}
-                initialName={newCustomerName}
-                onSave={async (customerData) => {
-                    try {
-                        const response = await api.post('/customers', {
-                            ...customerData,
-                            tenantId
-                        });
-                        const newCustomer = response.data;
-                        setCustomers([...customers, newCustomer]);
-                        setSelectedCustomer(newCustomer);
-                        setCustomerSearch('');
-                        toast.success('Customer created successfully');
-                    } catch (error) {
-                        console.error('Failed to create customer', error);
-                        toast.error('Failed to create customer');
-                        throw error;
-                    }
-                }}
-            />
-
-            {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {!isMounted ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <p>Loading cart...</p>
-                    </div>
-                ) : items.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <p>Cart is empty</p>
-                    </div>
-                ) : (
-                    items.map((item) => (
-                        <div key={item.productId} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                            <div className="flex-1">
-                                <h4 className="font-medium text-gray-800">{item.name}</h4>
-                                <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center bg-white rounded-md border border-gray-200">
-                                    <button
-                                        onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1))}
-                                        className="p-1 hover:bg-gray-100 text-gray-600"
-                                    >
-                                        <Minus size={16} />
-                                    </button>
-                                    <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
-                                    <button
-                                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                        className="p-1 hover:bg-gray-100 text-gray-600"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
-                                </div>
-
-                                <button
-                                    onClick={() => removeItem(item.productId)}
-                                    className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <button onClick={() => setSelectedCustomer(null)} className="text-xs text-red-500 hover:underline">Change</button>
                             </div>
                         </div>
-                    ))
-                )}
+                    ) : (
+                        <p className="text-xs text-gray-400 italic mb-2">No customer selected</p>
+                    )}
+                    {selectedCustomer && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100 flex justify-between items-center">
+                            <span className="text-sm text-blue-800 font-medium">Loyalty Points: {selectedCustomer.loyaltyPoints || 0}</span>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max={selectedCustomer.loyaltyPoints || 0}
+                                    value={redeemPoints || ''}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        setRedeemPoints(Math.min(val, selectedCustomer.loyaltyPoints || 0));
+                                    }}
+                                    className="w-16 p-1 text-sm border rounded text-right"
+                                    placeholder="0"
+                                    disabled={!selectedCustomer.loyaltyPoints}
+                                />
+                                <span className="text-xs text-blue-600">Redeem</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Cart Items */}
+                <div className="space-y-3">
+                    {items.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                                <Armchair size={24} className="opacity-50" />
+                            </div>
+                            <p className="text-sm">Cart is empty</p>
+                        </div>
+                    ) : (
+                        items.map((item) => (
+                            <div key={item.productId} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg group">
+                                <div className="flex-1">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="font-medium text-gray-800">{item.name}</span>
+                                        <span className="font-bold text-gray-900">LKR {(item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <div className="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm">
+                                            <button
+                                                onClick={() => updateQuantity(item.productId, Math.max(0, item.quantity - 1))}
+                                                className="p-1 hover:bg-gray-50 text-gray-600 rounded-l-lg transition-colors"
+                                            >
+                                                <Minus size={14} />
+                                            </button>
+                                            <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                                            <button
+                                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                                className="p-1 hover:bg-gray-50 text-gray-600 rounded-r-lg transition-colors"
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={() => removeItem(item.productId)}
+                                            className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Cart Items */}
+                {/* ... */}
+
             </div>
 
             {/* Footer / Totals */}
@@ -556,77 +634,27 @@ export function CartSidebar() {
                 <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-gray-600">
                         <span>Subtotal</span>
-                        <span>${isMounted ? calculateTotals().subtotal.toFixed(2) : '0.00'}</span>
+                        <span>LKR {isMounted ? calculateTotals().subtotal.toFixed(2) : '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-gray-600">
                         <span>Tax (10%)</span>
-                        <span>${isMounted ? calculateTotals().tax.toFixed(2) : '0.00'}</span>
+                        <span>LKR {isMounted ? calculateTotals().tax.toFixed(2) : '0.00'}</span>
                     </div>
-
-                    {/* Discount Section */}
-                    {showDiscountInput ? (
-                        <div className="bg-orange-50 p-2 rounded border border-orange-100 mb-2">
-                            <div className="flex gap-2 mb-2">
-                                <button
-                                    onClick={() => setDiscount({ ...discount, type: 'fixed' })}
-                                    className={`flex-1 text-xs py-1 rounded ${discount.type === 'fixed' ? 'bg-orange-200 font-bold' : 'bg-white border'}`}
-                                >
-                                    $ Fixed
-                                </button>
-                                <button
-                                    onClick={() => setDiscount({ ...discount, type: 'percentage' })}
-                                    className={`flex-1 text-xs py-1 rounded ${discount.type === 'percentage' ? 'bg-orange-200 font-bold' : 'bg-white border'}`}
-                                >
-                                    % Percent
-                                </button>
-                            </div>
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    value={discount.value || ''}
-                                    onChange={(e) => setDiscount({ ...discount, value: parseFloat(e.target.value) || 0 })}
-                                    className="flex-1 p-1 text-sm border rounded"
-                                    placeholder={discount.type === 'fixed' ? 'Amount ($)' : 'Percentage (%)'}
-                                />
-                                <button onClick={() => setShowDiscountInput(false)} className="text-xs text-gray-500 underline">Close</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => setShowDiscountInput(true)}
-                            className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                        >
-                            <Plus size={14} /> Add Discount
-                        </button>
-                    )}
-
-                    {discount.value > 0 && (
-                        <div className="flex justify-between text-orange-600 font-medium">
-                            <span>Discount ({discount.type === 'fixed' ? '$' : ''}{discount.value}{discount.type === 'percentage' ? '%' : ''})</span>
-                            <span>-${isMounted ? calculateTotals().discountAmount.toFixed(2) : '0.00'}</span>
-                        </div>
-                    )}
-
-                    {serviceChargeRate > 0 && (
+                    {calculateTotals().serviceCharge > 0 && (
                         <div className="flex justify-between text-gray-600">
-                            <span>Service Charge (10%)</span>
-                            <span>${isMounted ? calculateTotals().serviceCharge.toFixed(2) : '0.00'}</span>
+                            <span>Service Charge</span>
+                            <span>LKR {isMounted ? calculateTotals().serviceCharge.toFixed(2) : '0.00'}</span>
                         </div>
                     )}
-                    <div className="flex justify-between items-center py-2">
-                        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={serviceChargeRate > 0}
-                                onChange={(e) => setServiceChargeRate(e.target.checked ? 0.10 : 0)}
-                                className="rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            Apply Service Charge (10%)
-                        </label>
-                    </div>
+                    {redeemPoints > 0 && (
+                        <div className="flex justify-between text-green-600 font-medium">
+                            <span>Points Redeemed ({redeemPoints})</span>
+                            <span>-LKR {isMounted ? calculateTotals().pointsDiscount.toFixed(2) : '0.00'}</span>
+                        </div>
+                    )}
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-dashed border-gray-300">
                         <span>Total</span>
-                        <span>${isMounted ? calculateTotals().finalTotal.toFixed(2) : '0.00'}</span>
+                        <span>LKR {isMounted ? calculateTotals().finalTotal.toFixed(2) : '0.00'}</span>
                     </div>
                 </div>
 
@@ -647,7 +675,108 @@ export function CartSidebar() {
                     </button>
                 </div>
             </div>
+            {/* Pending Orders Modal */}
+            {showPendingOrders && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                            <h3 className="text-lg font-bold text-gray-800">Pending Orders</h3>
+                            <button onClick={() => setShowPendingOrders(false)} className="text-gray-500 hover:text-gray-700">
+                                <Trash2 size={20} className="rotate-45" />
+                            </button>
+                        </div>
+                        <div className="p-4 border-b border-gray-200">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by customer or table..."
+                                    value={pendingOrderSearch}
+                                    onChange={(e) => setPendingOrderSearch(e.target.value)}
+                                    className="w-full pl-10 p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {pendingOrders.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">No pending orders found</div>
+                            ) : (
+                                pendingOrders
+                                    .filter(order =>
+                                        (order.customer?.name || '').toLowerCase().includes(pendingOrderSearch.toLowerCase()) ||
+                                        (order.table?.name || '').toLowerCase().includes(pendingOrderSearch.toLowerCase()) ||
+                                        (order.orderNumber || '').includes(pendingOrderSearch)
+                                    )
+                                    .map(order => (
+                                        <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold text-gray-800">#{order.orderNumber}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${order.orderType === 'dining' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                                                        {order.orderType.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    {order.table && <span className="mr-3">Table: {order.table.name}</span>}
+                                                    {order.customer && <span>Customer: {order.customer.name}</span>}
+                                                    {!order.table && !order.customer && <span>Walk-in Customer</span>}
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    {new Date(order.createdAt).toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-bold text-lg">LKR {Number(order.totalAmount).toFixed(2)}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        setLastOrder(order);
+                                                        // Populate cart for display (optional, or just go straight to payment)
+                                                        // For now, let's just set lastOrder and open payment modal
+                                                        setShowPendingOrders(false);
+                                                        setShowPaymentModal(true);
+                                                    }}
+                                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium"
+                                                >
+                                                    Pay
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modals */}
+            <ReceiptModal
+                isOpen={showReceiptModal}
+                onClose={() => setShowReceiptModal(false)}
+                order={lastOrder}
+                paymentDetails={paymentDetails!}
+                tenantDetails={tenantDetails}
+                onNewOrder={handleNewOrder}
+                initialEmail={selectedCustomer?.email || ''}
+            />
+
+            <ConfirmationModal
+                isOpen={showClearConfirmation}
+                onClose={() => setShowClearConfirmation(false)}
+                onConfirm={handleClearTable}
+                title="Clear Table?"
+                message={`Are you sure you want to clear ${tables.find(t => t.id === tableToClear)?.name || 'this table'}? This will make it available for new orders.`}
+                confirmText="Yes, Clear Table"
+                variant="danger"
+            />
+            <CustomerModal
+                isOpen={showCustomerModal}
+                onClose={() => setShowCustomerModal(false)}
+                onSave={isEditingCustomer ? handleUpdateCustomer : handleCreateCustomer}
+                initialName={isEditingCustomer ? selectedCustomer?.name : ''}
+                initialPhoneNumber={isEditingCustomer ? selectedCustomer?.phoneNumber : ''}
+                initialEmail={isEditingCustomer ? selectedCustomer?.email : ''}
+                isEditing={isEditingCustomer}
+            />
             <PaymentModal
                 isOpen={showPaymentModal}
                 onClose={() => setShowPaymentModal(false)}
@@ -659,14 +788,75 @@ export function CartSidebar() {
                 onComplete={handlePaymentComplete}
             />
 
-            <ReceiptModal
-                isOpen={showReceiptModal}
-                onClose={() => setShowReceiptModal(false)}
-                order={lastOrder}
-                paymentDetails={paymentDetails!}
-                tenantDetails={tenantDetails}
-                onNewOrder={handleNewOrder}
-            />
+            {/* Printable Receipt Portal */}
+            {isMounted && createPortal(
+                <div id="printable-receipt" className="hidden print:block">
+                    <div className="p-8 bg-white text-black font-mono text-sm max-w-[80mm] mx-auto">
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl font-bold mb-2">{tenantDetails?.name || 'DINEXA POS'}</h1>
+                            <p>{tenantDetails?.address || '123 Restaurant Street'}</p>
+                            <p>Tel: {tenantDetails?.phoneNumber || '+1 234 567 890'}</p>
+                            <div className="border-b-2 border-dashed border-black my-4"></div>
+                        </div>
+
+                        <div className="mb-4">
+                            <p>Date: {new Date().toLocaleString()}</p>
+                            <p>Order Type: {(lastOrder?.orderType || orderType).toUpperCase()}</p>
+                            {(lastOrder?.table?.name || (selectedTable && tables.find(t => t.id === selectedTable)?.name)) && (
+                                <p>Table: {lastOrder?.table?.name || tables.find(t => t.id === selectedTable)?.name}</p>
+                            )}
+                            {(lastOrder?.customer?.name || selectedCustomer?.name) && (
+                                <p>Customer: {lastOrder?.customer?.name || selectedCustomer.name}</p>
+                            )}
+                        </div>
+
+                        <div className="border-b border-dashed border-black mb-4"></div>
+
+                        <div className="space-y-2 mb-4">
+                            {(lastOrder?.items || items).map((item: any) => (
+                                <div key={item.productId || item.id} className="flex justify-between">
+                                    <span>{item.quantity}x {item.product?.name || item.name}</span>
+                                    <span>LKR {((item.price || item.product?.price) * item.quantity).toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="border-b border-dashed border-black mb-4"></div>
+
+                        <div className="space-y-1 text-right">
+                            <div className="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span>LKR {lastOrder ? Number(lastOrder.totalAmount / 1.1).toFixed(2) : calculateTotals().subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Tax (10%):</span>
+                                <span>LKR {lastOrder ? Number(lastOrder.totalAmount - (lastOrder.totalAmount / 1.1)).toFixed(2) : calculateTotals().tax.toFixed(2)}</span>
+                            </div>
+                            {(lastOrder?.serviceCharge > 0 || calculateTotals().serviceCharge > 0) && (
+                                <div className="flex justify-between">
+                                    <span>Service Charge:</span>
+                                    <span>LKR {lastOrder ? Number(lastOrder.serviceCharge).toFixed(2) : calculateTotals().serviceCharge.toFixed(2)}</span>
+                                </div>
+                            )}
+                            {(lastOrder?.redeemedPoints > 0 || redeemPoints > 0) && (
+                                <div className="flex justify-between">
+                                    <span>Points Redeemed:</span>
+                                    <span>-LKR {lastOrder ? Number(lastOrder.discountAmount || 0).toFixed(2) : calculateTotals().pointsDiscount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-lg mt-2 border-t border-dashed border-black pt-2">
+                                <span>Total:</span>
+                                <span>LKR {lastOrder ? Number(lastOrder.totalAmount).toFixed(2) : calculateTotals().finalTotal.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div className="text-center mt-8">
+                            <p>Thank you for dining with us!</p>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div >
     );
 }

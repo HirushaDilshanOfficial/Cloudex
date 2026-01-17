@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { RecipesService } from './recipes.service';
+import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -12,8 +13,8 @@ export class RecipesController {
 
     @Post()
     @Roles(UserRole.MANAGER, UserRole.ADMIN)
-    create(@Body() data: any) {
-        return this.recipesService.create(data);
+    create(@Body() createRecipeDto: CreateRecipeDto) {
+        return this.recipesService.create(createRecipeDto);
     }
 
     @Get()

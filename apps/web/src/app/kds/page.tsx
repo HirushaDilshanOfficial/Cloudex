@@ -23,9 +23,10 @@ interface Order {
     items: OrderItem[];
     createdAt: string;
     tenantId: string;
-    tenantId: string;
     orderNumber?: string;
     orderType?: 'dining' | 'takeaway';
+    redeemedPoints?: number;
+    discountAmount?: number;
 }
 
 interface DecodedToken {

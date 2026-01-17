@@ -23,6 +23,9 @@ export class Table extends BaseEntity {
     })
     status: TableStatus;
 
+    @Column({ type: 'timestamp', nullable: true })
+    lastOrderTime: Date;
+
     @Column({ default: false })
     isArchived: boolean;
 

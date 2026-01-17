@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 
 interface Ingredient {
     id: string;
@@ -59,6 +60,8 @@ export default function InventoryPage() {
     const [showAdjustModal, setShowAdjustModal] = useState(false);
     const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
     const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [ingredientToDelete, setIngredientToDelete] = useState<string | null>(null);
 
     // Form Data
     const [formData, setFormData] = useState({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
@@ -145,12 +148,19 @@ export default function InventoryPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this ingredient?')) return;
+    const handleDelete = (id: string) => {
+        setIngredientToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!ingredientToDelete) return;
         try {
-            await api.delete(`/inventory/ingredients/${id}`);
+            await api.delete(`/inventory/ingredients/${ingredientToDelete}`);
             toast.success('Ingredient deleted successfully');
             fetchIngredients();
+            setShowDeleteModal(false);
+            setIngredientToDelete(null);
         } catch (error) {
             console.error('Failed to delete ingredient', error);
             toast.error('Failed to delete ingredient');
@@ -294,7 +304,7 @@ export default function InventoryPage() {
                                     <td className="px-6 py-4 font-medium text-gray-900">{ingredient.name}</td>
                                     <td className="px-6 py-4 font-bold text-gray-800">{ingredient.currentStock}</td>
                                     <td className="px-6 py-4 text-gray-500">{ingredient.unit}</td>
-                                    <td className="px-6 py-4 text-gray-500">${ingredient.costPerUnit}</td>
+                                    <td className="px-6 py-4 text-gray-500">LKR {ingredient.costPerUnit}</td>
                                     <td className="px-6 py-4">
                                         {ingredient.currentStock < 10 ? (
                                             <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full w-fit">
@@ -490,6 +500,17 @@ export default function InventoryPage() {
                     </div>
                 )
             }
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                title="Delete Ingredient?"
+                message="Are you sure you want to delete this ingredient? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
         </>
     );
 }

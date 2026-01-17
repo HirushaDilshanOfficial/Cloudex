@@ -4,7 +4,7 @@ import React from 'react';
 import { PosLayout } from '@/components/pos/pos-layout';
 import { ProductCard } from '@/components/pos/product-card';
 import { CartSidebar } from '@/components/pos/cart-sidebar';
-import { LogOut } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 
@@ -21,6 +21,7 @@ export default function POSPage() {
     const router = useRouter();
     const [tenantId, setTenantId] = React.useState<string>('');
     const [selectedCategory, setSelectedCategory] = React.useState('All');
+    const [searchQuery, setSearchQuery] = React.useState('');
 
     React.useEffect(() => {
         if (token) {
@@ -53,8 +54,21 @@ export default function POSPage() {
 
     // Filter products
     const filteredProducts = React.useMemo(() => {
-        if (selectedCategory === 'All') return products;
-        return products.filter((p: any) => (p.category || 'Uncategorized') === selectedCategory);
+        let filtered = products;
+
+        // Filter by availability
+        filtered = filtered.filter((p: any) => p.isAvailable !== false); // Handle undefined as true if needed, or strict true
+
+        if (selectedCategory !== 'All') {
+            filtered = filtered.filter((p: any) => (p.category || 'Uncategorized') === selectedCategory);
+        }
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter((p: any) => p.name.toLowerCase().includes(query));
+        }
+
+        return filtered;
     }, [products, selectedCategory]);
 
     const handleLogout = () => {
@@ -74,6 +88,16 @@ export default function POSPage() {
                         <LogOut size={20} />
                         <span className="font-medium">Logout</span>
                     </button>
+                </div>
+                <div className="relative mt-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
                 </div>
                 <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
                     {categories.map((cat: string) => (

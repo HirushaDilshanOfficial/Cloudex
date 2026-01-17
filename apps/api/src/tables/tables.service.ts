@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Table } from './entities/table.entity';
+import { Table, TableStatus } from './entities/table.entity';
 import { Order } from '../orders/entities/order.entity';
 import { CreateTableDto, UpdateTableDto } from './dto/create-table.dto';
 
@@ -23,16 +23,30 @@ export class TablesService {
         return this.tablesRepository.save(table);
     }
 
-    findAll(tenantId: string, branchId?: string) {
+    async findAll(tenantId: string, branchId?: string) {
         const where: any = { tenantId, isArchived: false };
         if (branchId) {
             where.branchId = branchId;
         }
-        return this.tablesRepository.find({
+
+        // Auto-release locked tables
+        const tables = await this.tablesRepository.find({
             where,
             order: { name: 'ASC' },
             relations: ['branch'],
         });
+
+        const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+
+        for (const table of tables) {
+            if (table.status === TableStatus.OCCUPIED && table.lastOrderTime && new Date(table.lastOrderTime) < twentyMinutesAgo) {
+                await this.tablesRepository.update(table.id, { status: TableStatus.AVAILABLE, lastOrderTime: null as any });
+                table.status = TableStatus.AVAILABLE;
+                table.lastOrderTime = null as any;
+            }
+        }
+
+        return tables;
     }
 
     findOne(id: string) {
@@ -48,7 +62,13 @@ export class TablesService {
     }
 
     async updateStatus(id: string, status: string) {
-        await this.tablesRepository.update(id, { status: status as any });
+        const updateData: any = { status: status as any };
+        if (status === TableStatus.OCCUPIED) {
+            updateData.lastOrderTime = new Date();
+        } else if (status === TableStatus.AVAILABLE) {
+            updateData.lastOrderTime = null as any;
+        }
+        await this.tablesRepository.update(id, updateData);
         return this.findOne(id);
     }
 

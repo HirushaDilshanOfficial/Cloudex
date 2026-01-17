@@ -18,9 +18,10 @@ interface ReceiptModalProps {
         phone: string;
     };
     onNewOrder: () => void;
+    initialEmail?: string;
 }
 
-export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDetails, onNewOrder }: ReceiptModalProps) {
+export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDetails, onNewOrder, initialEmail = '' }: ReceiptModalProps) {
     const [email, setEmail] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
@@ -28,11 +29,11 @@ export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDet
     // Reset state when modal opens or order changes
     React.useEffect(() => {
         if (isOpen) {
-            setEmail('');
+            setEmail(initialEmail);
             setEmailSent(false);
             setIsSending(false);
         }
-    }, [isOpen, order?.id]);
+    }, [isOpen, order?.id, initialEmail]);
 
     if (!isOpen || !order) return null;
 
@@ -75,7 +76,7 @@ export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDet
                             <CheckCircle size={32} className="text-green-600" />
                         </div>
                         <h2 className="text-2xl font-bold text-green-800">Payment Successful!</h2>
-                        <p className="text-green-600">Change Due: <span className="font-bold">${paymentDetails.change.toFixed(2)}</span></p>
+                        <p className="text-green-600">Change Due: <span className="font-bold">LKR {paymentDetails.change.toFixed(2)}</span></p>
                     </div>
                 )}
 
@@ -120,7 +121,7 @@ export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDet
                                     <span className="font-bold mr-2">{item.quantity}x</span>
                                     {item.name}
                                 </span>
-                                <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                                <span className="font-medium">LKR {(item.price * item.quantity).toFixed(2)}</span>
                             </div>
                         ))}
                     </div>
@@ -128,27 +129,27 @@ export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDet
                     <div className="border-t-2 border-dashed border-gray-200 pt-4 space-y-2 mb-6">
                         <div className="flex justify-between text-gray-600">
                             <span>Subtotal</span>
-                            <span>${Number(order.totalAmount / 1.1).toFixed(2)}</span>
+                            <span>LKR {Number(order.totalAmount / 1.1).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                             <span>Tax (10%)</span>
-                            <span>${Number(order.totalAmount - (order.totalAmount / 1.1)).toFixed(2)}</span>
+                            <span>LKR {Number(order.totalAmount - (order.totalAmount / 1.1)).toFixed(2)}</span>
                         </div>
                         {order.discount && (
                             <div className="flex justify-between text-orange-600 font-medium">
-                                <span>Discount ({order.discount.type === 'fixed' ? '$' : ''}{order.discount.value}{order.discount.type === 'percentage' ? '%' : ''})</span>
-                                <span>-${Number(order.discountAmount || 0).toFixed(2)}</span>
+                                <span>Discount ({order.discount.type === 'fixed' ? 'LKR ' : ''}{order.discount.value}{order.discount.type === 'percentage' ? '%' : ''})</span>
+                                <span>-LKR {Number(order.discountAmount || 0).toFixed(2)}</span>
                             </div>
                         )}
                         {order.serviceCharge > 0 && (
                             <div className="flex justify-between text-gray-600">
                                 <span>Service Charge</span>
-                                <span>${Number(order.serviceCharge).toFixed(2)}</span>
+                                <span>LKR {Number(order.serviceCharge).toFixed(2)}</span>
                             </div>
                         )}
                         <div className="flex justify-between text-xl font-bold text-gray-900 pt-2">
                             <span>Total</span>
-                            <span>${Number(order.totalAmount).toFixed(2)}</span>
+                            <span>LKR {Number(order.totalAmount).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -160,11 +161,11 @@ export function ReceiptModal({ isOpen, onClose, order, paymentDetails, tenantDet
                             </div>
                             <div className="flex justify-between text-sm mb-1">
                                 <span className="text-gray-600">Tendered</span>
-                                <span className="font-medium">${paymentDetails.tendered.toFixed(2)}</span>
+                                <span className="font-medium">LKR {paymentDetails.tendered.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Change</span>
-                                <span className="font-bold">${paymentDetails.change.toFixed(2)}</span>
+                                <span className="font-bold">LKR {paymentDetails.change.toFixed(2)}</span>
                             </div>
                         </div>
                     )}

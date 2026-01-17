@@ -5,7 +5,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import axios from 'axios';
 import { Plus, Trash2, User, Pencil } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { jwtDecode } from 'jwt-decode';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 
 interface User {
     id: string;
@@ -41,6 +43,10 @@ export default function UserManagementPage() {
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
     const [error, setError] = useState<string>('');
+
+    // Delete Confirmation State
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -95,6 +101,7 @@ export default function UserManagementPage() {
             if (editingUser) {
                 await axios.put(`http://localhost:3001/users/${editingUser.id}`, {
                     ...formData,
+                    branchId: formData.branchId || null,
                     tenantId,
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -102,6 +109,7 @@ export default function UserManagementPage() {
             } else {
                 await axios.post('http://localhost:3001/users', {
                     ...formData,
+                    branchId: formData.branchId || null,
                     tenantId,
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -137,15 +145,25 @@ export default function UserManagementPage() {
         setError('');
     };
 
-    const handleDeleteUser = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+    const handleDeleteUser = (id: string) => {
+        setUserToDelete(id);
+        setShowDeleteConfirmation(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
         try {
-            await axios.delete(`http://localhost:3001/users/${id}`, {
+            await axios.delete(`http://localhost:3001/users/${userToDelete}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchUsers();
+            toast.success('User deleted successfully');
         } catch (error) {
             console.error('Failed to delete user', error);
+            toast.error('Failed to delete user');
+        } finally {
+            setShowDeleteConfirmation(false);
+            setUserToDelete(null);
         }
     };
 
@@ -385,6 +403,16 @@ export default function UserManagementPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirmation}
+                onClose={() => setShowDeleteConfirmation(false)}
+                onConfirm={confirmDeleteUser}
+                title="Delete User?"
+                message="Are you sure you want to delete this user? This action cannot be undone."
+                confirmText="Yes, Delete User"
+                variant="danger"
+            />
         </>
     );
 }

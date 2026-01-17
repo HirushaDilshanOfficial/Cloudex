@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Branch } from './entities/branch.entity';
@@ -46,6 +46,13 @@ export class BranchesService {
 
     async remove(id: string, user: User): Promise<void> {
         const branch = await this.findOne(id, user);
-        await this.branchesRepository.remove(branch);
+        try {
+            await this.branchesRepository.remove(branch);
+        } catch (error) {
+            if (error.code === '23503') { // Postgres foreign key violation
+                throw new ConflictException('Cannot delete branch because it has associated users or orders.');
+            }
+            throw error;
+        }
     }
 }
