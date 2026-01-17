@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Query, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch, UseGuards, Query, ParseUUIDPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -13,8 +15,9 @@ export class ProductsController {
 
     @Post()
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
-    create(@Body() createProductDto: CreateProductDto) {
-        return this.productsService.create(createProductDto);
+    @UseInterceptors(FileInterceptor('image'))
+    create(@Body() createProductDto: CreateProductDto, @UploadedFile() file: Express.Multer.File) {
+        return this.productsService.create(createProductDto, file);
     }
 
     @Get()
@@ -27,10 +30,11 @@ export class ProductsController {
         return this.productsService.findOne(id);
     }
 
-    @Put(':id')
+    @Patch(':id')
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
-    update(@Param('id') id: string, @Body() updateProductDto: any) {
-        return this.productsService.update(id, updateProductDto);
+    @UseInterceptors(FileInterceptor('image'))
+    update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @UploadedFile() file: Express.Multer.File) {
+        return this.productsService.update(id, updateProductDto, file);
     }
 
     @Delete(':id')

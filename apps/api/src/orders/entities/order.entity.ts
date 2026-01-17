@@ -69,6 +69,12 @@ export class Order extends BaseEntity {
     @Column('decimal', { precision: 10, scale: 2 })
     totalAmount: number;
 
+    @Column({ type: 'int', default: 0 })
+    redeemedPoints: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    discountAmount: number;
+
     @Column()
     tenantId: string;
 

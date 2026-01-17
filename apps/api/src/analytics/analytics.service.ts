@@ -109,4 +109,13 @@ export class AnalyticsService {
             sold: Number(p.sold)
         }));
     }
+
+    async getRecentOrders(tenantId: string, limit: number = 5) {
+        return this.ordersRepository.find({
+            where: { tenantId },
+            relations: ['items', 'items.product'],
+            order: { createdAt: 'DESC' },
+            take: limit,
+        });
+    }
 }

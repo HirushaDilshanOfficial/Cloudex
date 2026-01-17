@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Plus, Edit, Trash2, Store } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import toast from 'react-hot-toast';
 
 interface Branch {
     id: string;
@@ -58,8 +59,13 @@ export function BranchesSettings() {
         try {
             await api.delete(`/branches/${id}`);
             fetchBranches();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete branch', error);
+            if (error.response && error.response.status === 409) {
+                toast.error('Cannot delete branch because it has associated users or orders.');
+            } else {
+                toast.error('Failed to delete branch');
+            }
         }
     };
 

@@ -15,6 +15,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CategoriesModule } from './categories/categories.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -48,6 +49,7 @@ import { AppService } from './app.service';
     BranchesModule,
     CustomersModule,
     NotificationsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

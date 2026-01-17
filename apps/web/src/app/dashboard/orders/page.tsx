@@ -34,6 +34,8 @@ interface Order {
     orderNumber?: string;
     orderType?: 'dining' | 'takeaway';
     paymentStatus?: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+    redeemedPoints?: number;
+    discountAmount?: number;
 }
 
 interface Branch {
@@ -238,7 +240,7 @@ export default function OrderHistoryPage() {
                                         {order.items.length} items
                                     </td>
                                     <td className="px-6 py-4 font-medium text-gray-900">
-                                        ${calculateTotal(order.items).toFixed(2)}
+                                        LKR {calculateTotal(order.items).toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium uppercase ${getPaymentStatusColor(order.paymentStatus || 'PENDING')}`}>
@@ -350,17 +352,29 @@ export default function OrderHistoryPage() {
                                         <span className="font-medium text-gray-800">{item.product?.name || 'Unknown Product'}</span>
                                     </div>
                                     <span className="font-medium text-gray-900">
-                                        ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                                        LKR {((item.product?.price || 0) * item.quantity).toFixed(2)}
                                     </span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                            <span className="text-lg font-bold text-gray-900">Total Amount</span>
-                            <span className="text-2xl font-bold text-primary">
-                                ${calculateTotal(selectedOrder.items).toFixed(2)}
-                            </span>
+                        <div className="pt-4 border-t border-gray-200 space-y-2">
+                            <div className="flex justify-between items-center text-gray-600">
+                                <span>Subtotal</span>
+                                <span>LKR {calculateTotal(selectedOrder.items).toFixed(2)}</span>
+                            </div>
+                            {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 && (
+                                <div className="flex justify-between items-center text-green-600 font-medium">
+                                    <span>Discount (Points: {selectedOrder.redeemedPoints})</span>
+                                    <span>-LKR {Number(selectedOrder.discountAmount).toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
+                                <span className="text-lg font-bold text-gray-900">Total Amount</span>
+                                <span className="text-2xl font-bold text-primary">
+                                    LKR {(calculateTotal(selectedOrder.items) - (Number(selectedOrder.discountAmount) || 0)).toFixed(2)}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

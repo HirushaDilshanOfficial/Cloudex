@@ -45,4 +45,8 @@ export class CreateOrderDto {
     @IsOptional()
     @IsEnum(PaymentStatus)
     paymentStatus?: PaymentStatus;
+
+    @IsOptional()
+    @IsNumber()
+    redeemedPoints?: number;
 }

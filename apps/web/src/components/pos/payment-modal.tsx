@@ -36,7 +36,7 @@ export function PaymentModal({ isOpen, onClose, totalAmount, onComplete }: Payme
     const handleComplete = () => {
         const tendered = parseFloat(tenderedAmount) || 0;
         if (paymentMethod === 'cash' && tendered < totalAmount) {
-            toast.error(`Please tender at least $${totalAmount.toFixed(2)}`);
+            toast.error(`Please tender at least LKR ${totalAmount.toFixed(2)}`);
             return;
         }
         onComplete({
@@ -56,16 +56,16 @@ export function PaymentModal({ isOpen, onClose, totalAmount, onComplete }: Payme
                         <div className="space-y-4">
                             <div className="flex justify-between text-gray-600">
                                 <span>Subtotal</span>
-                                <span>${(totalAmount / 1.1).toFixed(2)}</span>
+                                <span>LKR {(totalAmount / 1.1).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-gray-600">
                                 <span>Tax (10%)</span>
-                                <span>${(totalAmount - (totalAmount / 1.1)).toFixed(2)}</span>
+                                <span>LKR {(totalAmount - (totalAmount / 1.1)).toFixed(2)}</span>
                             </div>
                             <div className="border-t border-gray-300 pt-4 mt-4">
                                 <div className="flex justify-between items-end">
                                     <span className="text-lg font-bold text-gray-800">Total Due</span>
-                                    <span className="text-4xl font-bold text-primary">${totalAmount.toFixed(2)}</span>
+                                    <span className="text-4xl font-bold text-primary">LKR {totalAmount.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -136,20 +136,20 @@ export function PaymentModal({ isOpen, onClose, totalAmount, onComplete }: Payme
                                         onClick={() => handleQuickAmount(amount)}
                                         className="py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition-colors"
                                     >
-                                        ${amount}
+                                        LKR {amount}
                                     </button>
                                 ))}
                                 <button
                                     onClick={() => handleQuickAmount(totalAmount)}
                                     className="col-span-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition-colors"
                                 >
-                                    Exact Amount (${totalAmount.toFixed(2)})
+                                    Exact Amount (LKR {totalAmount.toFixed(2)})
                                 </button>
                             </div>
 
                             <div className="mt-auto bg-green-50 p-4 rounded-xl border border-green-100 flex justify-between items-center">
                                 <span className="text-green-800 font-medium">Change Due</span>
-                                <span className="text-2xl font-bold text-green-700">${change.toFixed(2)}</span>
+                                <span className="text-2xl font-bold text-green-700">LKR {change.toFixed(2)}</span>
                             </div>
                         </div>
                     )}

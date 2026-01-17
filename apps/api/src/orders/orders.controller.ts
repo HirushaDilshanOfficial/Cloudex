@@ -32,8 +32,13 @@ export class OrdersController {
 
     @Get()
     @Roles(UserRole.MANAGER, UserRole.ADMIN, UserRole.CASHIER)
-    findAll(@Query('tenantId') tenantId: string, @Request() req) {
-        return this.ordersService.findAll(tenantId, req.user);
+    findAll(
+        @Query('tenantId') tenantId: string,
+        @Query('status') status: string,
+        @Query('paymentStatus') paymentStatus: string,
+        @Request() req
+    ) {
+        return this.ordersService.findAll(tenantId, req.user, status, paymentStatus);
     }
 
     @Get(':id')

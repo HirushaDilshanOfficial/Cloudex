@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Recipe } from './entities/recipe.entity';
 import { RecipeItem } from './entities/recipe-item.entity';
+import { CreateRecipeDto } from './dto/create-recipe.dto';
 
 @Injectable()
 export class RecipesService {
@@ -13,14 +14,14 @@ export class RecipesService {
         private recipeItemsRepository: Repository<RecipeItem>,
     ) { }
 
-    async create(data: any): Promise<Recipe> {
+    async create(data: CreateRecipeDto): Promise<Recipe> {
         const { items, ...recipeData } = data;
 
         const recipe = this.recipesRepository.create(recipeData);
         const savedRecipe = (await this.recipesRepository.save(recipe)) as unknown as Recipe;
 
         if (items && items.length > 0) {
-            const recipeItems = items.map((item: any) =>
+            const recipeItems = items.map((item) =>
                 this.recipeItemsRepository.create({
                     ...item,
                     recipe: savedRecipe,

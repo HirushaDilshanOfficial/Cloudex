@@ -88,6 +88,8 @@ export class OrdersService {
                 customerId: createOrderDto.customerId,
                 paymentMethod: createOrderDto.paymentMethod || PaymentMethod.CASH,
                 paymentStatus: createOrderDto.paymentStatus || PaymentStatus.PENDING,
+                redeemedPoints: createOrderDto.redeemedPoints || 0,
+                discountAmount: createOrderDto.redeemedPoints ? (createOrderDto.redeemedPoints * 1.00) : 0,
             });
 
             console.log('Attempting to save order with data:', JSON.stringify({
@@ -102,11 +104,39 @@ export class OrdersService {
             const savedOrder = await this.ordersRepository.save(order);
             console.log('Order header saved:', savedOrder.id);
 
-            // Award Loyalty Points
-            if (createOrderDto.customerId) {
+            // Handle Loyalty Points Redemption
+            let discountAmount = 0;
+            if (createOrderDto.redeemedPoints && createOrderDto.redeemedPoints > 0) {
+                if (!createOrderDto.customerId) {
+                    throw new BadRequestException('Customer ID is required to redeem points');
+                }
+                const customer = await this.customersService.findOne(createOrderDto.customerId);
+                if (!customer) {
+                    throw new BadRequestException('Customer not found');
+                }
+                if ((customer.loyaltyPoints || 0) < createOrderDto.redeemedPoints) {
+                    throw new BadRequestException('Insufficient loyalty points');
+                }
+
+                // 1 Point = LKR 10.00
+                discountAmount = createOrderDto.redeemedPoints * 10.00;
+
+                // Deduct points
+                await this.customersService.update(customer.id, {
+                    loyaltyPoints: (customer.loyaltyPoints || 0) - createOrderDto.redeemedPoints
+                });
+                console.log(`Redeemed ${createOrderDto.redeemedPoints} points for customer ${customer.id}. Discount: $${discountAmount}`);
+            }
+
+            // Award Loyalty Points (on the amount PAID)
+            // totalAmount is already the final amount paid (after discount), so we use it directly.
+            const finalAmountPaid = totalAmount;
+
+            if (createOrderDto.customerId && finalAmountPaid > 0) {
                 try {
-                    const points = Math.floor(totalAmount / 10);
+                    const points = Math.floor(finalAmountPaid / 150);
                     if (points > 0) {
+                        // Re-fetch customer to get updated points if we just deducted some
                         const customer = await this.customersService.findOne(createOrderDto.customerId);
                         if (customer) {
                             await this.customersService.update(customer.id, {
@@ -117,7 +147,7 @@ export class OrdersService {
                             console.warn(`Customer ${createOrderDto.customerId} not found for points award.`);
                         }
                     } else {
-                        console.log(`Total amount ${totalAmount} too low for points (Points: ${points})`);
+                        console.log(`Final amount ${finalAmountPaid} too low for points (Points: ${points})`);
                     }
                 } catch (error) {
                     console.error('Failed to award loyalty points', error);
@@ -202,7 +232,7 @@ export class OrdersService {
         }
     }
 
-    findAll(tenantId: string, user?: any): Promise<Order[]> {
+    findAll(tenantId: string, user?: any, status?: string, paymentStatus?: string): Promise<Order[]> {
         const where: any = { tenantId };
 
         // If user is not admin and has a branchId, filter by branch
@@ -210,9 +240,17 @@ export class OrdersService {
             where.branchId = user.branchId;
         }
 
+        if (status) {
+            where.status = status;
+        }
+
+        if (paymentStatus) {
+            where.paymentStatus = paymentStatus;
+        }
+
         return this.ordersRepository.find({
             where,
-            relations: ['items', 'items.product', 'cashier', 'table', 'branch'],
+            relations: ['items', 'items.product', 'cashier', 'table', 'branch', 'customer'],
             order: { createdAt: 'DESC' },
         });
     }
@@ -220,7 +258,7 @@ export class OrdersService {
     async findOne(id: string): Promise<Order> {
         const order = await this.ordersRepository.findOne({
             where: { id },
-            relations: ['items', 'items.product', 'cashier', 'table', 'branch'],
+            relations: ['items', 'items.product', 'cashier', 'table', 'branch', 'customer'],
         });
         if (!order) {
             throw new Error('Order not found');
