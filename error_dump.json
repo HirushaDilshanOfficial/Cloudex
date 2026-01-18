@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-01-16T18:45:36.892Z",
-  "path": "/products/4578d2cf-3a04-43a3-968d-fb04ab574d27",
-  "method": "PATCH",
+  "timestamp": "2026-01-17T18:31:16.483Z",
+  "path": "/inventory/ingredients",
+  "method": "POST",
   "body": {
-    "name": "Garlic Bread",
-    "description": "Toasted bread slices topped with garlic butter and herbs.",
-    "price": "650",
-    "category": "Appetizer",
-    "isAvailable": "true",
+    "name": "Lime",
+    "unit": "kg",
+    "costPerUnit": 450,
+    "currentStock": 10,
+    "branchId": "",
     "tenantId": "a1551256-3f15-4135-911f-305a08758959"
   },
   "user": {
@@ -18,8 +18,8 @@
     "branchId": null
   },
   "error": {
-    "message": "Request Timeout",
-    "http_code": 499,
-    "name": "TimeoutError"
+    "message": "invalid input syntax for type uuid: \"\"",
+    "stack": "QueryFailedError: invalid input syntax for type uuid: \"\"\n    at PostgresQueryRunner.query (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/driver/src/driver/postgres/PostgresQueryRunner.ts:325:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async InsertQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/InsertQueryBuilder.ts:164:33)\n    at async SubjectExecutor.executeInsertOperations (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/persistence/src/persistence/SubjectExecutor.ts:435:42)\n    at async SubjectExecutor.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/persistence/src/persistence/SubjectExecutor.ts:137:9)\n    at async EntityPersistExecutor.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/persistence/src/persistence/EntityPersistExecutor.ts:182:21)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
+    "name": "QueryFailedError"
   }
 }

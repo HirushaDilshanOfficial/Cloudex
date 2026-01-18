@@ -12,7 +12,7 @@ export class StockMovement {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => Ingredient)
+    @ManyToOne(() => Ingredient, { onDelete: 'CASCADE' })
     ingredient: Ingredient;
 
     @Column()

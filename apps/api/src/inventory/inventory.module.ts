@@ -6,9 +6,10 @@ import { Ingredient } from './entities/ingredient.entity';
 import { StockMovement } from './entities/stock-movement.entity';
 import { StockAlert } from './entities/stock-alert.entity';
 import { InventoryGateway } from './inventory.gateway';
+import { RecipesModule } from '../recipes/recipes.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement, StockAlert])],
+    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement, StockAlert]), RecipesModule],
     controllers: [InventoryController],
     providers: [InventoryService, InventoryGateway],
     exports: [InventoryService],

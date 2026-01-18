@@ -64,7 +64,14 @@ export default function InventoryPage() {
     const [ingredientToDelete, setIngredientToDelete] = useState<string | null>(null);
 
     // Form Data
-    const [formData, setFormData] = useState({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
+    const [formData, setFormData] = useState<{
+        name: string;
+        unit: string;
+        costPerUnit: number | string;
+        currentStock: number | string;
+        branchId: string;
+    }>({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
+    const [isBranchSpecific, setIsBranchSpecific] = useState(false);
     const [adjustData, setAdjustData] = useState({ quantity: 0, type: 'IN', reason: '' });
 
     useEffect(() => {
@@ -128,14 +135,19 @@ export default function InventoryPage() {
 
     const handleSave = async () => {
         try {
+            const payload = {
+                ...formData,
+                costPerUnit: Number(formData.costPerUnit),
+                currentStock: Number(formData.currentStock),
+                tenantId,
+                branchId: formData.branchId || null, // Convert empty string to null
+            };
+
             if (editingIngredient) {
-                await api.patch(`/inventory/ingredients/${editingIngredient.id}`, formData);
+                await api.patch(`/inventory/ingredients/${editingIngredient.id}`, payload);
                 toast.success('Ingredient updated successfully');
             } else {
-                await api.post('/inventory/ingredients', {
-                    ...formData,
-                    tenantId,
-                });
+                await api.post('/inventory/ingredients', payload);
                 toast.success('Ingredient created successfully');
             }
             setShowModal(false);
@@ -161,9 +173,9 @@ export default function InventoryPage() {
             fetchIngredients();
             setShowDeleteModal(false);
             setIngredientToDelete(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete ingredient', error);
-            toast.error('Failed to delete ingredient');
+            toast.error(error.response?.data?.message || 'Failed to delete ingredient');
         }
     };
 
@@ -197,6 +209,7 @@ export default function InventoryPage() {
             currentStock: ingredient.currentStock,
             branchId: ingredient.branch?.id || '',
         });
+        setIsBranchSpecific(!!ingredient.branch);
         setShowModal(true);
     };
 
@@ -223,6 +236,7 @@ export default function InventoryPage() {
                     onClick={() => {
                         setEditingIngredient(null);
                         setFormData({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
+                        setIsBranchSpecific(false);
                         setShowModal(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
@@ -390,7 +404,7 @@ export default function InventoryPage() {
                                             type="number"
                                             className="w-full p-2 border rounded-lg"
                                             value={formData.costPerUnit}
-                                            onChange={(e) => setFormData({ ...formData, costPerUnit: parseFloat(e.target.value) })}
+                                            onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
                                         />
                                     </div>
                                 </div>
@@ -401,24 +415,46 @@ export default function InventoryPage() {
                                             type="number"
                                             className="w-full p-2 border rounded-lg"
                                             value={formData.currentStock}
-                                            onChange={(e) => setFormData({ ...formData, currentStock: parseFloat(e.target.value) })}
+                                            onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
                                         />
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
-                                    <select
-                                        className="w-full p-2 border rounded-lg"
-                                        value={formData.branchId}
-                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                    >
-                                        <option value="">Select Branch (Optional)</option>
-                                        {branches.map((branch) => (
-                                            <option key={branch.id} value={branch.id}>
-                                                {branch.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <input
+                                            type="checkbox"
+                                            id="branchSpecific"
+                                            checked={isBranchSpecific}
+                                            onChange={(e) => {
+                                                setIsBranchSpecific(e.target.checked);
+                                                if (!e.target.checked) {
+                                                    setFormData({ ...formData, branchId: '' });
+                                                }
+                                            }}
+                                            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                        />
+                                        <label htmlFor="branchSpecific" className="text-sm font-medium text-gray-700">
+                                            Assign to specific branch
+                                        </label>
+                                    </div>
+
+                                    {isBranchSpecific && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Select Branch</label>
+                                            <select
+                                                className="w-full p-2 border rounded-lg"
+                                                value={formData.branchId}
+                                                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                            >
+                                                <option value="">Select Branch</option>
+                                                {branches.map((branch) => (
+                                                    <option key={branch.id} value={branch.id}>
+                                                        {branch.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2 mt-6">

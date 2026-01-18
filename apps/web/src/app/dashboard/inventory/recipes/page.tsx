@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, TrendingUp, DollarSign, Calculator } from 'lucide-react';
+import { Plus, Save, TrendingUp, DollarSign, Calculator, Edit2, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
+import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 
 interface Product {
     id: string;
@@ -37,6 +38,11 @@ export default function RecipeManagerPage() {
     const [recipeItems, setRecipeItems] = useState<{ ingredientId: string; quantity: number; unit: string }[]>([]);
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
+
+    // Edit/Delete State
+    const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         if (token) {
@@ -70,6 +76,45 @@ export default function RecipeManagerPage() {
         }
     };
 
+    const handleDelete = (id: string) => {
+        setRecipeToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!recipeToDelete) return;
+        try {
+            await axios.delete(`http://localhost:3001/recipes/${recipeToDelete}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Recipe deleted successfully');
+            fetchData();
+            setShowDeleteModal(false);
+            setRecipeToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete recipe', error);
+            toast.error('Failed to delete recipe');
+        }
+    };
+
+    const handleEdit = (recipe: Recipe) => {
+        setEditingRecipeId(recipe.id);
+        setSelectedProduct(recipe.product.id);
+        setRecipeItems(recipe.items.map(item => ({
+            ingredientId: item.ingredient.id,
+            quantity: Number(item.quantity),
+            unit: item.ingredient.unit
+        })));
+        // Scroll to top to show form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingRecipeId(null);
+        setSelectedProduct('');
+        setRecipeItems([]);
+    };
+
     const handleAddItem = () => {
         setRecipeItems([...recipeItems, { ingredientId: '', quantity: 0, unit: '' }]);
     };
@@ -92,17 +137,30 @@ export default function RecipeManagerPage() {
         }
 
         try {
-            await axios.post('http://localhost:3001/recipes', {
-                productId: selectedProduct,
-                items: recipeItems,
-                tenantId: tenantId,
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            if (editingRecipeId) {
+                // Update existing recipe
+                await axios.patch(`http://localhost:3001/recipes/${editingRecipeId}`, {
+                    productId: selectedProduct,
+                    items: recipeItems,
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                toast.success('Recipe updated successfully!');
+            } else {
+                // Create new recipe
+                await axios.post('http://localhost:3001/recipes', {
+                    productId: selectedProduct,
+                    items: recipeItems,
+                    tenantId: tenantId,
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                toast.success('Recipe saved successfully!');
+            }
 
-            toast.success('Recipe saved successfully!');
             setRecipeItems([]);
             setSelectedProduct('');
+            setEditingRecipeId(null);
             fetchData(); // Refresh list
         } catch (error) {
             console.error('Failed to save recipe', error);
@@ -138,7 +196,15 @@ export default function RecipeManagerPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <Plus className="text-primary" size={24} /> Create New Recipe
+                            {editingRecipeId ? (
+                                <>
+                                    <Edit2 className="text-primary" size={24} /> Edit Recipe
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="text-primary" size={24} /> Create New Recipe
+                                </>
+                            )}
                         </h2>
 
                         <div className="mb-6">
@@ -212,8 +278,16 @@ export default function RecipeManagerPage() {
                             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                         >
                             <Save size={20} />
-                            <span>Save Recipe</span>
+                            <span>{editingRecipeId ? 'Update Recipe' : 'Save Recipe'}</span>
                         </button>
+                        {editingRecipeId && (
+                            <button
+                                onClick={handleCancelEdit}
+                                className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -266,6 +340,7 @@ export default function RecipeManagerPage() {
                                 <th className="p-4 font-semibold text-gray-600">Selling Price</th>
                                 <th className="p-4 font-semibold text-gray-600">Profit Margin</th>
                                 <th className="p-4 font-semibold text-gray-600">Margin %</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -289,6 +364,22 @@ export default function RecipeManagerPage() {
                                                 {percent.toFixed(1)}%
                                             </span>
                                         </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(recipe)}
+                                                    className="text-gray-400 hover:text-blue-500 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                >
+                                                    <Edit2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(recipe.id)}
+                                                    className="text-gray-400 hover:text-red-500 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 );
                             })}
@@ -303,6 +394,18 @@ export default function RecipeManagerPage() {
                     </table>
                 </div>
             </div>
-        </div>
+
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                title="Delete Recipe?"
+                message="Are you sure you want to delete this recipe? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
+        </div >
     );
 }
