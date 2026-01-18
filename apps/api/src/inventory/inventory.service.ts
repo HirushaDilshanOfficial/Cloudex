@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ingredient } from './entities/ingredient.entity';
@@ -6,6 +6,7 @@ import { StockMovement, StockMovementType } from './entities/stock-movement.enti
 import { StockAlert, StockAlertStatus } from './entities/stock-alert.entity';
 
 import { InventoryGateway } from './inventory.gateway';
+import { RecipesService } from '../recipes/recipes.service';
 
 @Injectable()
 export class InventoryService {
@@ -17,6 +18,7 @@ export class InventoryService {
         @InjectRepository(StockAlert)
         private stockAlertRepository: Repository<StockAlert>,
         private inventoryGateway: InventoryGateway,
+        private recipesService: RecipesService,
     ) { }
 
     async createIngredient(data: Partial<Ingredient>): Promise<Ingredient> {
@@ -24,12 +26,25 @@ export class InventoryService {
         return this.ingredientRepository.save(ingredient);
     }
 
-    findAll(tenantId: string, branchId?: string): Promise<Ingredient[]> {
+    async findAll(tenantId: string, branchId?: string): Promise<Ingredient[]> {
+        console.log(`InventoryService.findAll called with tenantId: ${tenantId}, branchId: ${branchId}`);
         const where: any = { tenantId };
         if (branchId) {
             where.branchId = branchId;
+            // Also include items with no branch (global items)
+            const items = await this.ingredientRepository.find({
+                where: [
+                    { tenantId, branchId },
+                    { tenantId, branchId: null } as any
+                ],
+                relations: ['branch']
+            });
+            console.log(`Found ${items.length} ingredients (filtered by branch + global)`);
+            return items;
         }
-        return this.ingredientRepository.find({ where, relations: ['branch'] });
+        const items = await this.ingredientRepository.find({ where, relations: ['branch'] });
+        console.log(`Found ${items.length} ingredients (all branch)`);
+        return items;
     }
 
     async adjustStock(
@@ -74,6 +89,13 @@ export class InventoryService {
     }
 
     async remove(id: string): Promise<void> {
+        // Check if used in recipes
+        const recipes = await this.recipesService.findRecipesByIngredient(id);
+        if (recipes.length > 0) {
+            const recipeNames = recipes.map(r => r.product?.name || 'Unknown Product').join(', ');
+            throw new BadRequestException(`Cannot delete ingredient because it is used in the following recipes: ${recipeNames}`);
+        }
+
         await this.ingredientRepository.delete(id);
     }
 
