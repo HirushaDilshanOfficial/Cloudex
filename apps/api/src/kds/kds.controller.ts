@@ -16,6 +16,12 @@ export class KdsController {
         return this.kdsService.getActiveOrders(tenantId, branchId);
     }
 
+    @Get('completed')
+    @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+    getCompletedOrders(@Query('tenantId') tenantId: string, @Query('branchId') branchId?: string) {
+        return this.kdsService.getCompletedOrders(tenantId, branchId);
+    }
+
     @Put('orders/:id/status')
     @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
     updateStatus(

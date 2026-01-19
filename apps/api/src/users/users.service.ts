@@ -1,7 +1,7 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { Repository, In } from 'typeorm';
+import { User, UserRole } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -14,6 +14,10 @@ export class UsersService {
 
     async findOneByEmail(email: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { email }, relations: ['branch'] });
+    }
+
+    async findOneByResetToken(token: string): Promise<User | null> {
+        return this.usersRepository.findOne({ where: { resetPasswordToken: token } });
     }
 
     async create(createUserDto: CreateUserDto): Promise<User> {
@@ -42,6 +46,15 @@ export class UsersService {
         return this.usersRepository.find({ where, relations: ['branch'] });
     }
 
+    async findAdminsAndManagers(tenantId: string): Promise<User[]> {
+        return this.usersRepository.find({
+            where: {
+                tenantId,
+                role: In([UserRole.ADMIN, UserRole.MANAGER]),
+            },
+        });
+    }
+
     findOne(id: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { id }, relations: ['branch'] });
     }
@@ -50,7 +63,15 @@ export class UsersService {
         await this.usersRepository.delete(id);
     }
 
-    async update(id: string, updateUserDto: any): Promise<User> {
+    async update(id: string, updateUserDto: any, requestingUserId?: string): Promise<User> {
+        if (requestingUserId && id === requestingUserId && updateUserDto.role) {
+            const currentUser = await this.findOne(id);
+            if (currentUser && currentUser.role !== updateUserDto.role) {
+                // throw new BadRequestException('You cannot change your own role.'); // BadRequestException is not imported, let's just ignore the role change or throw Error for now. Or better, import BadRequestException.
+                throw new ConflictException('You cannot change your own role.'); // Using ConflictException as it is already imported.
+            }
+        }
+
         const fs = require('fs');
         try {
             // Debug logging

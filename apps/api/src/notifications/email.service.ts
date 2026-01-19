@@ -125,4 +125,95 @@ export class EmailService {
             </div>
         `;
     }
+    async sendPasswordResetEmail(email: string, token: string) {
+        try {
+            console.log(`Attempting to send password reset email to ${email}`);
+
+            if (!this.transporter) {
+                await this.createTransporter();
+            }
+
+            const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+
+            const info = await this.transporter.sendMail({
+                from: '"Cloudex Support" <support@cloudex.com>',
+                to: email,
+                subject: 'Reset Your Password',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #333; margin: 0;">Cloudex</h1>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px; padding: 15px;">
+                            <p>Hello,</p>
+                            <p>You requested a password reset for your Cloudex account.</p>
+                            <p>Please click the button below to reset your password. This link will expire in 1 hour.</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+                            </div>
+
+                            <p>If you didn't ask to reset your password, you can ignore this email.</p>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+                            <p>© 2026 Cloudex Inc. All rights reserved.</p>
+                        </div>
+                    </div>
+                `,
+            });
+
+            console.log('Password reset email sent: %s', info.messageId);
+            console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+            return info;
+        } catch (error) {
+            console.error('Error sending password reset email:', error);
+            throw error;
+        }
+    }
+    async sendLowStockAlert(email: string, alert: any) {
+        try {
+            console.log(`Attempting to send low stock alert to ${email}`);
+
+            if (!this.transporter) {
+                await this.createTransporter();
+            }
+
+            const info = await this.transporter.sendMail({
+                from: '"Cloudex Inventory" <inventory@cloudex.com>',
+                to: email,
+                subject: `Low Stock Alert: ${alert.ingredient?.name}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #d9534f; margin: 0;">Low Stock Alert</h1>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px; padding: 15px; background-color: #fff3f3; border-left: 4px solid #d9534f;">
+                            <p><strong>Item:</strong> ${alert.ingredient?.name}</p>
+                            <p><strong>Current Stock:</strong> ${alert.ingredient?.currentStock} ${alert.ingredient?.unit}</p>
+                            <p><strong>Threshold:</strong> ${alert.threshold} ${alert.ingredient?.unit}</p>
+                            <p><strong>Branch:</strong> ${alert.branch?.name || 'All Branches'}</p>
+                            ${alert.notes ? `<p><strong>Notes:</strong> ${alert.notes}</p>` : ''}
+                        </div>
+
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="http://localhost:3000/dashboard/inventory" style="background-color: #d9534f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Inventory</a>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+                            <p>This is an automated alert from Cloudex.</p>
+                        </div>
+                    </div>
+                `,
+            });
+
+            console.log('Low stock alert sent: %s', info.messageId);
+            return info;
+        } catch (error) {
+            console.error('Error sending low stock alert:', error);
+            // Don't throw error to prevent blocking the main flow
+        }
+    }
 }

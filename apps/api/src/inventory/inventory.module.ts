@@ -7,9 +7,11 @@ import { StockMovement } from './entities/stock-movement.entity';
 import { StockAlert } from './entities/stock-alert.entity';
 import { InventoryGateway } from './inventory.gateway';
 import { RecipesModule } from '../recipes/recipes.module';
+import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement, StockAlert]), RecipesModule],
+    imports: [TypeOrmModule.forFeature([Ingredient, StockMovement, StockAlert]), RecipesModule, UsersModule, NotificationsModule],
     controllers: [InventoryController],
     providers: [InventoryService, InventoryGateway],
     exports: [InventoryService],

@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { Plus, Trash2, Edit2, Users, Search, Phone, Mail, Star } from 'lucide-react';
+import { generateReport } from '@/lib/report-generator';
+import { Plus, Trash2, Edit2, Users, Search, Phone, Mail, Star, Download } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
 
@@ -116,24 +117,52 @@ export default function CustomersPage() {
         (c.phoneNumber && c.phoneNumber.includes(searchTerm))
     );
 
+    const handleDownloadReport = () => {
+        const columns = ['Customer Name', 'Phone', 'Email', 'Loyalty Points'];
+        const data = filteredCustomers.map(customer => [
+            customer.name,
+            customer.phoneNumber || '-',
+            customer.email || '-',
+            (customer.loyaltyPoints || 0).toString()
+        ]);
+
+        generateReport({
+            title: 'Customer List Report',
+            columns,
+            data,
+            filename: 'customers_report',
+            tenantId,
+            token: token || ''
+        });
+    };
+
     return (
         <>
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Customers</h1>
                         <p className="text-gray-500">Manage your customer base and loyalty</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingCustomer(null);
-                            setFormData({ name: '', phoneNumber: '', email: '', loyaltyPoints: 0 });
-                            setShowModal(true);
-                        }}
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={20} /> Add Customer
-                    </button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={handleDownloadReport}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                        >
+                            <Download size={20} />
+                            <span className="hidden sm:inline">Download List</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingCustomer(null);
+                                setFormData({ name: '', phoneNumber: '', email: '', loyaltyPoints: 0 });
+                                setShowModal(true);
+                            }}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={20} /> Add Customer
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search Bar */}

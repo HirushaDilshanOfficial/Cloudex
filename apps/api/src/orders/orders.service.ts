@@ -48,12 +48,16 @@ export class OrdersService {
         if (tableId && !uuidRegex.test(tableId)) {
             throw new BadRequestException(`Invalid tableId: ${tableId}. Must be a UUID.`);
         }
-        if (cashierId && !uuidRegex.test(cashierId)) {
-            throw new BadRequestException(`Invalid cashierId: ${cashierId}. Must be a UUID.`);
-        } else if (!cashierId && user?.userId && !uuidRegex.test(user.userId)) {
-            // If cashierId is not in DTO, we might want to use user.userId, but if it's invalid, we should warn/block
-            console.warn(`Invalid userId from token: ${user.userId}. Cannot set as cashierId.`);
-            // We don't set cashierId if it's invalid
+        // Determine cashierId
+        let finalCashierId = cashierId;
+        if (!finalCashierId && user?.userId) {
+            if (uuidRegex.test(user.userId)) {
+                finalCashierId = user.userId;
+            } else {
+                console.warn(`Invalid userId from token: ${user.userId}. Cannot set as cashierId.`);
+            }
+        } else if (finalCashierId && !uuidRegex.test(finalCashierId)) {
+            throw new BadRequestException(`Invalid cashierId: ${finalCashierId}. Must be a UUID.`);
         }
 
         // Validate items
@@ -79,7 +83,7 @@ export class OrdersService {
             const order = this.ordersRepository.create({
                 tenantId,
                 tableId,
-                cashierId,
+                cashierId: finalCashierId,
                 totalAmount,
                 status: createOrderDto.status || OrderStatus.PENDING,
                 branchId,
@@ -95,7 +99,7 @@ export class OrdersService {
             console.log('Attempting to save order with data:', JSON.stringify({
                 tenantId,
                 tableId,
-                cashierId,
+                cashierId: finalCashierId,
                 branchId,
                 totalAmount
             }));

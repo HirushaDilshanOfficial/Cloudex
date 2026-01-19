@@ -14,6 +14,9 @@ export class Tenant extends BaseEntity {
     @Column({ nullable: true })
     phone: string;
 
+    @Column({ nullable: true })
+    logo: string;
+
     @Column({ default: 'USD' })
     currency: string;
 

@@ -7,6 +7,8 @@ import { StockAlert, StockAlertStatus } from './entities/stock-alert.entity';
 
 import { InventoryGateway } from './inventory.gateway';
 import { RecipesService } from '../recipes/recipes.service';
+import { UsersService } from '../users/users.service';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class InventoryService {
@@ -19,6 +21,8 @@ export class InventoryService {
         private stockAlertRepository: Repository<StockAlert>,
         private inventoryGateway: InventoryGateway,
         private recipesService: RecipesService,
+        private usersService: UsersService,
+        private emailService: EmailService,
     ) { }
 
     async createIngredient(data: Partial<Ingredient>): Promise<Ingredient> {
@@ -66,7 +70,11 @@ export class InventoryService {
         if (type === StockMovementType.IN) {
             ingredient.currentStock = Number(ingredient.currentStock) + Number(quantity);
         } else {
-            ingredient.currentStock = Number(ingredient.currentStock) - Number(quantity);
+            const newStock = Number(ingredient.currentStock) - Number(quantity);
+            if (newStock < 0) {
+                throw new BadRequestException(`Insufficient stock. Current stock: ${ingredient.currentStock}, Requested deduction: ${quantity}`);
+            }
+            ingredient.currentStock = newStock;
         }
 
         await this.ingredientRepository.save(ingredient);
@@ -79,6 +87,39 @@ export class InventoryService {
             reason,
             tenantId,
         });
+
+        // Check for low stock and trigger alert
+        console.log(`Checking low stock for ${ingredient.name}. Current: ${ingredient.currentStock}, Threshold: 10`);
+        if (ingredient.currentStock < 10) {
+            // Check if there's already a pending alert for this ingredient
+            const existingAlert = await this.stockAlertRepository.findOne({
+                where: {
+                    ingredientId: ingredient.id,
+                    status: StockAlertStatus.PENDING,
+                },
+            });
+
+            if (existingAlert) {
+                console.log(`Pending alert already exists for ${ingredient.name}`);
+            } else {
+                console.log(`Creating new low stock alert for ${ingredient.name}`);
+                try {
+                    await this.createAlert({
+                        ingredientId: ingredient.id,
+                        branchId: ingredient.branchId,
+                        tenantId: ingredient.tenantId,
+                        threshold: 10,
+                        status: StockAlertStatus.PENDING,
+                        notes: `Stock dropped below threshold. Current: ${ingredient.currentStock}`,
+                    });
+                } catch (error) {
+                    console.error('Failed to create low stock alert:', error);
+                    // Do not throw, so the stock adjustment still succeeds
+                }
+            }
+        } else {
+            console.log(`Stock is above threshold for ${ingredient.name}`);
+        }
 
         return ingredient;
     }
@@ -110,7 +151,26 @@ export class InventoryService {
         });
 
         if (fullAlert) {
-            this.inventoryGateway.notifyStockAlert(fullAlert, fullAlert.tenantId, fullAlert.branchId);
+            try {
+                this.inventoryGateway.notifyStockAlert(fullAlert, fullAlert.tenantId, fullAlert.branchId);
+            } catch (error) {
+                console.error('Failed to send socket notification:', error);
+            }
+
+            // Send email notifications
+            try {
+                const recipients = await this.usersService.findAdminsAndManagers(fullAlert.tenantId);
+                console.log(`Found ${recipients.length} recipients for low stock alert`);
+
+                for (const user of recipients) {
+                    if (user.email) {
+                        // Don't await to prevent blocking response
+                        this.emailService.sendLowStockAlert(user.email, fullAlert);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to send email notifications for stock alert', error);
+            }
         }
 
         return savedAlert;

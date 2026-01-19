@@ -16,4 +16,8 @@ export class CreateTenantDto {
     @IsString()
     @IsOptional()
     contactEmail?: string;
+
+    @IsString()
+    @IsOptional()
+    logo?: string;
 }

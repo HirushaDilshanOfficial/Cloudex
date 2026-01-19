@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download, DollarSign, ShoppingBag, TrendingUp, Wallet } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
-import axios from 'axios';
+import api from '@/lib/api';
 import {
     LineChart,
     Line,
@@ -13,7 +15,6 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
-import { DollarSign, ShoppingBag, TrendingUp, Wallet } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 
 interface AnalyticsStats {
@@ -32,6 +33,8 @@ export default function AnalyticsPage() {
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
 
+    const [tenantDetails, setTenantDetails] = useState<{ name: string; logo?: string; address?: string; phone?: string; email?: string } | null>(null);
+
     useEffect(() => {
         if (token) {
             try {
@@ -44,16 +47,34 @@ export default function AnalyticsPage() {
     }, [token]);
 
     useEffect(() => {
+        if (tenantId && token) {
+            const fetchTenantDetails = async () => {
+                try {
+                    const response = await fetch(`http://localhost:3001/tenants/${tenantId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setTenantDetails(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch tenant details', error);
+                }
+            };
+            fetchTenantDetails();
+        }
+    }, [tenantId, token]);
+
+    useEffect(() => {
         const fetchData = async () => {
             if (!tenantId) return;
 
             setLoading(true);
             try {
-                const headers = { Authorization: `Bearer ${token}` };
                 const [statsRes, trendRes, topRes] = await Promise.all([
-                    axios.get(`http://localhost:3001/analytics/sales/${period}?tenantId=${tenantId}`, { headers }),
-                    axios.get(`http://localhost:3001/analytics/sales/trend?tenantId=${tenantId}&days=${period === 'daily' ? 7 : period === 'weekly' ? 30 : 90}`, { headers }),
-                    axios.get(`http://localhost:3001/analytics/products/top?tenantId=${tenantId}`, { headers }),
+                    api.get(`/analytics/sales/${period}?tenantId=${tenantId}`),
+                    api.get(`/analytics/sales/trend?tenantId=${tenantId}&days=${period === 'daily' ? 7 : period === 'weekly' ? 30 : 90}`),
+                    api.get(`/analytics/products/top?tenantId=${tenantId}`),
                 ]);
 
                 setStats(statsRes.data);
@@ -68,6 +89,122 @@ export default function AnalyticsPage() {
 
         fetchData();
     }, [token, tenantId, period]);
+
+    const handleDownloadReport = async () => {
+        const doc = new jsPDF();
+        const date = new Date().toLocaleDateString();
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+
+        // --- Header ---
+        let yPos = 20;
+
+        // Logo
+        if (tenantDetails?.logo) {
+            try {
+                const img = new Image();
+                img.src = tenantDetails.logo;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                });
+                doc.addImage(img, 'PNG', 14, 15, 25, 25);
+            } catch (e) {
+                console.error("Failed to load logo for PDF", e);
+            }
+        }
+
+        // Company Info
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(tenantDetails?.name || 'My Restaurant', 45, 22);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+
+        let contactY = 28;
+        if (tenantDetails?.address) {
+            doc.text(tenantDetails.address, 45, contactY);
+            contactY += 5;
+        }
+        if (tenantDetails?.phone) {
+            doc.text(`Phone: ${tenantDetails.phone}`, 45, contactY);
+            contactY += 5;
+        }
+        if (tenantDetails?.email) {
+            doc.text(`Email: ${tenantDetails.email}`, 45, contactY);
+        }
+
+        // Report Title & Date
+        doc.setDrawColor(200);
+        doc.line(14, 45, pageWidth - 14, 45); // Separator line
+
+        doc.setTextColor(0);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Analytics Report', 14, 55);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${date}`, 14, 62);
+        doc.text(`Period: ${period.charAt(0).toUpperCase() + period.slice(1)}`, 14, 67);
+
+        // --- Content ---
+
+        // Summary Stats
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Summary Statistics', 14, 80);
+
+        const statsData = [
+            ['Total Revenue', `$${stats?.totalRevenue.toFixed(2)}`],
+            ['Total Profit', `$${stats?.totalProfit?.toFixed(2) || '0.00'}`],
+            ['Total Orders', stats?.totalOrders.toString() || '0'],
+            ['Avg. Order Value', `$${stats?.avgOrderValue.toFixed(2)}`],
+        ];
+
+        autoTable(doc, {
+            startY: 85,
+            head: [['Metric', 'Value']],
+            body: statsData,
+            theme: 'striped',
+            headStyles: { fillColor: [66, 139, 202] },
+            styles: { fontSize: 10 },
+        });
+
+        // Top Products
+        const finalY = (doc as any).lastAutoTable.finalY || 85;
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Top Selling Products', 14, finalY + 15);
+
+        const productsData = topProducts.map((p, index) => [
+            (index + 1).toString(),
+            p.name,
+            p.sold.toString()
+        ]);
+
+        autoTable(doc, {
+            startY: finalY + 20,
+            head: [['Rank', 'Product Name', 'Units Sold']],
+            body: productsData,
+            theme: 'striped',
+            headStyles: { fillColor: [66, 139, 202] },
+            styles: { fontSize: 10 },
+        });
+
+        // --- Footer ---
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text('Generated by Cloudex POS', pageWidth / 2, pageHeight - 10, { align: 'center' });
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+        }
+
+        doc.save(`analytics_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
 
     if (loading && !stats) {
         return (
@@ -84,19 +221,28 @@ export default function AnalyticsPage() {
                     <h1 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
                     <p className="text-gray-500">Overview of your business performance</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {(['daily', 'weekly', 'monthly'] as const).map((p) => (
-                        <button
-                            key={p}
-                            onClick={() => setPeriod(p)}
-                            className={`px-4 py-2 rounded-md text-sm font-medium capitalize transition-all ${period === p
-                                ? 'bg-white text-primary shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            {p}
-                        </button>
-                    ))}
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleDownloadReport}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                        <Download size={18} />
+                        <span>Download Report</span>
+                    </button>
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        {(['daily', 'weekly', 'monthly'] as const).map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={`px-4 py-2 rounded-md text-sm font-medium capitalize transition-all ${period === p
+                                    ? 'bg-white text-primary shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

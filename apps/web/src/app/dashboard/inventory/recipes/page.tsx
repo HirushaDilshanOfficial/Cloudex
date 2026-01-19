@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, TrendingUp, DollarSign, Calculator, Edit2, Trash2 } from 'lucide-react';
+import { generateReport } from '@/lib/report-generator';
+import { Plus, Save, TrendingUp, DollarSign, Calculator, Edit2, Trash2, Download } from 'lucide-react';
+
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
@@ -182,6 +184,34 @@ export default function RecipeManagerPage() {
     const profitMargin = sellingPrice - estimatedCost;
     const marginPercentage = sellingPrice > 0 ? (profitMargin / sellingPrice) * 100 : 0;
 
+    const handleDownloadReport = () => {
+        const columns = ['Product', 'Ingredients', 'Total Cost', 'Selling Price', 'Profit Margin', 'Margin %'];
+        const data = recipes.map(recipe => {
+            const cost = recipe.items.reduce((sum, item) => sum + (Number(item.ingredient.costPerUnit) * item.quantity), 0);
+            const price = Number(recipe.product.price);
+            const margin = price - cost;
+            const percent = price > 0 ? (margin / price) * 100 : 0;
+
+            return [
+                recipe.product.name,
+                recipe.items.length.toString(),
+                `LKR ${cost.toFixed(2)}`,
+                `LKR ${price.toFixed(2)}`,
+                `LKR ${margin.toFixed(2)}`,
+                `${percent.toFixed(1)}%`
+            ];
+        });
+
+        generateReport({
+            title: 'Recipe Profitability Report',
+            columns,
+            data,
+            filename: 'recipes_report',
+            tenantId,
+            token: token || ''
+        });
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-6">
             <div className="flex justify-between items-center mb-8">
@@ -189,6 +219,13 @@ export default function RecipeManagerPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Recipe Manager</h1>
                     <p className="text-gray-500 mt-1">Manage recipes, track costs, and analyze profit margins</p>
                 </div>
+                <button
+                    onClick={handleDownloadReport}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                    <Download size={20} />
+                    <span>Download Report</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -261,9 +298,12 @@ export default function RecipeManagerPage() {
                                             onChange={(e) => {
                                                 const newItems = [...recipeItems];
                                                 const val = parseFloat(e.target.value);
-                                                newItems[index].quantity = isNaN(val) ? 0 : val;
-                                                setRecipeItems(newItems);
+                                                if (val >= 0 || e.target.value === '') {
+                                                    newItems[index].quantity = isNaN(val) ? 0 : val;
+                                                    setRecipeItems(newItems);
+                                                }
                                             }}
+                                            min="0"
                                             className="w-full p-2 rounded-lg border border-gray-200 text-sm"
                                             placeholder="0"
                                         />
