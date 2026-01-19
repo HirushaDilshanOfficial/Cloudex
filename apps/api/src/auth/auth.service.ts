@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { SignUpDto } from './dto/sign-up.dto';
 import { UserRole } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,7 @@ export class AuthService {
         private usersService: UsersService,
         private tenantsService: TenantsService,
         private jwtService: JwtService,
+        private emailService: EmailService,
     ) { }
 
     async validateUser(email: string, pass: string): Promise<any> {
@@ -34,6 +36,16 @@ export class AuthService {
         };
         return {
             access_token: this.jwtService.sign(payload),
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                tenantId: user.tenantId,
+                branchId: user.branchId,
+                branchName: user.branch?.name
+            }
         };
     }
 
@@ -62,5 +74,55 @@ export class AuthService {
 
     async register(createUserDto: any) {
         return this.usersService.create(createUserDto);
+    }
+
+    async forgotPassword(email: string) {
+        const user = await this.usersService.findOneByEmail(email);
+        if (!user) {
+            // We don't want to reveal if a user exists or not
+            return { message: 'If a user with this email exists, a password reset link has been sent.' };
+        }
+
+        // Restrict to ADMIN only
+        if (user.role !== UserRole.ADMIN) {
+            console.warn(`Password reset attempted for non-admin user: ${email}`);
+            // Return success message to avoid enumeration, but do NOT send email
+            return { message: 'If a user with this email exists, a password reset link has been sent.' };
+        }
+
+        // Generate a random token
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const expires = new Date();
+        expires.setHours(expires.getHours() + 1); // 1 hour expiration
+
+        // Save token to user
+        await this.usersService.update(user.id, {
+            resetPasswordToken: token,
+            resetPasswordExpires: expires,
+        });
+
+        // Send email
+        await this.emailService.sendPasswordResetEmail(email, token);
+
+        return { message: 'If a user with this email exists, a password reset link has been sent.' };
+    }
+
+    async resetPassword(token: string, newPassword: string) {
+        const user = await this.usersService.findOneByResetToken(token);
+
+        if (!user || user.resetPasswordExpires < new Date()) {
+            throw new UnauthorizedException('Invalid or expired password reset token');
+        }
+
+        const salt = await bcrypt.genSalt();
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        await this.usersService.update(user.id, {
+            passwordHash,
+            resetPasswordToken: null,
+            resetPasswordExpires: null,
+        });
+
+        return { message: 'Password has been successfully reset.' };
     }
 }

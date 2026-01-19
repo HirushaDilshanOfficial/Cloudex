@@ -65,7 +65,8 @@ export class RecipesService {
             relations: ['recipe', 'recipe.product'],
         });
         // Deduplicate recipes if an ingredient appears multiple times (unlikely but possible)
-        const recipes = recipeItems.map(item => item.recipe);
+        // Deduplicate recipes if an ingredient appears multiple times (unlikely but possible)
+        const recipes = recipeItems.map(item => item.recipe).filter(recipe => !!recipe);
         return [...new Map(recipes.map(r => [r.id, r])).values()];
     }
     async update(id: string, data: UpdateRecipeDto): Promise<Recipe> {

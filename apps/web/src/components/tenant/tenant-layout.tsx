@@ -10,6 +10,8 @@ import { jwtDecode } from 'jwt-decode';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { AlertTriangle, Bell } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import '@/lib/i18n';
 
 interface DecodedToken {
     role: string;
@@ -17,9 +19,16 @@ interface DecodedToken {
 }
 
 export function TenantLayout({ children }: { children: React.ReactNode }) {
+    const { t } = useTranslation('common');
     const token = useAuthStore((state) => state.token);
     const setToken = useAuthStore((state) => state.setToken);
     const router = useRouter();
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     let role = '';
     let branchName = '';
 
@@ -39,6 +48,31 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
     };
 
 
+
+
+    const [tenantDetails, setTenantDetails] = React.useState<{ name: string; logo?: string } | null>(null);
+
+    React.useEffect(() => {
+        if (token) {
+            const fetchTenantDetails = async () => {
+                try {
+                    const decoded: DecodedToken = jwtDecode(token);
+                    // @ts-ignore
+                    const tenantId = decoded.tenantId;
+                    const response = await fetch(`http://localhost:3001/tenants/${tenantId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setTenantDetails(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch tenant details', error);
+                }
+            };
+            fetchTenantDetails();
+        }
+    }, [token]);
 
     const [notifications, setNotifications] = React.useState<any[]>([]);
     const [unreadCount, setUnreadCount] = React.useState(0);
@@ -97,7 +131,7 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                             <div>
                                 <h4 className="font-bold text-gray-800">Low Stock Alert</h4>
                                 <p className="text-sm text-gray-600">
-                                    <span className="font-medium">{alert.ingredient.name}</span> is running low at <span className="font-medium">{alert.branch.name}</span>.
+                                    <span className="font-medium">{alert.ingredient.name}</span> is running low at <span className="font-medium">{alert.branch?.name || 'All Branches'}</span>.
                                 </p>
                                 {alert.notes && <p className="text-xs text-gray-500 mt-1 italic">"{alert.notes}"</p>}
                                 <div className="mt-2 flex gap-2">
@@ -134,48 +168,60 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
         }
     }, [token, role, router]);
 
+    if (!mounted) {
+        return null;
+    }
+
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
             <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-6 border-b border-gray-100">
-                    <h1 className="text-xl font-bold text-primary">My Restaurant</h1>
+                <div className="p-6 border-b border-gray-100 flex items-center justify-center">
+                    {tenantDetails?.logo ? (
+                        <img
+                            src={tenantDetails.logo}
+                            alt={tenantDetails.name}
+                            className="max-h-12 max-w-full object-contain"
+                        />
+                    ) : (
+                        <h1 className="text-xl font-bold text-primary">{tenantDetails?.name || 'My Restaurant'}</h1>
+                    )}
                 </div>
 
                 <nav className="flex-1 px-4 py-6 space-y-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/5 text-primary font-medium">
                         <LayoutDashboard size={20} />
-                        <span>Overview</span>
+                        <span>{t('overview')}</span>
                     </Link>
                     <Link href="/pos" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                         <ShoppingBag size={20} />
-                        <span>POS System</span>
+                        <span>{t('pos')}</span>
                     </Link>
                     <Link href="/dashboard/orders" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                         <Utensils size={20} />
-                        <span>Orders</span>
+                        <span>{t('orders')}</span>
                     </Link>
                     {(role === 'admin' || role === 'manager') && (
                         <>
                             <Link href="/dashboard/analytics" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <BarChart3 size={20} />
-                                <span>Analytics</span>
+                                <span>{t('analytics')}</span>
                             </Link>
                             <Link href="/dashboard/menu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Utensils size={20} />
-                                <span>Menu</span>
+                                <span>{t('menu')}</span>
                             </Link>
                             <Link href="/dashboard/inventory" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Box size={20} />
-                                <span>Inventory</span>
+                                <span>{t('inventory')}</span>
                             </Link>
                             <Link href="/dashboard/inventory/recipes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <ChefHat size={20} />
-                                <span>Recipes</span>
+                                <span>{t('recipes')}</span>
                             </Link>
                             <Link href="/dashboard/customers" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Users size={20} />
-                                <span className="font-medium">Customers</span>
+                                <span className="font-medium">{t('customers')}</span>
                             </Link>
                         </>
                     )}
@@ -183,15 +229,15 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                         <>
                             <Link href="/dashboard/users" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Users size={20} />
-                                <span>Staff</span>
+                                <span>{t('staff')}</span>
                             </Link>
                             <Link href="/dashboard/tables" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Armchair size={20} />
-                                <span>Tables</span>
+                                <span>{t('tables')}</span>
                             </Link>
                             <Link href="/dashboard/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors">
                                 <Settings size={20} />
-                                <span>Settings</span>
+                                <span>{t('settings')}</span>
                             </Link>
                         </>
                     )}
@@ -203,7 +249,7 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                         className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-50 text-red-500 transition-colors"
                     >
                         <LogOut size={20} />
-                        <span>Logout</span>
+                        <span>{t('logout')}</span>
                     </button>
                 </div>
             </aside>
@@ -258,7 +304,7 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                                                             Low Stock: {alert.ingredient?.name}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
-                                                            {alert.branch?.name} • {new Date(alert.createdAt).toLocaleTimeString()}
+                                                            {alert.branch?.name || 'All Branches'} • {new Date(alert.createdAt).toLocaleTimeString()}
                                                         </p>
                                                     </div>
                                                 </div>

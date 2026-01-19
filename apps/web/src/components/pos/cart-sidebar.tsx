@@ -1,7 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/cart-store';
-import { Trash2, Minus, Plus, Armchair, CheckCircle, Users, Search, Clock } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, User, Users, CreditCard, Search, X, Printer, Clock, Armchair, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
@@ -28,6 +29,7 @@ export function CartSidebar() {
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [orderType, setOrderType] = useState<'dining' | 'takeaway'>('dining');
     const token = useAuthStore((state) => state.token);
+    const user = useAuthStore((state) => state.user);
     const [tenantId, setTenantId] = useState<string>('');
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -64,7 +66,7 @@ export function CartSidebar() {
     const handleClearTable = async () => {
         if (!tableToClear) return;
         try {
-            await api.patch(`/tables/${tableToClear}/status`, { status: 'available' });
+            await api.patch(`/ tables / ${tableToClear}/status`, { status: 'available' });
             toast.success('Table cleared');
             // Refresh tables
             const response = await api.get(`/tables?tenantId=${tenantId}`);
@@ -659,20 +661,22 @@ export function CartSidebar() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <button
+                    <Button
                         onClick={handlePrintBill}
                         disabled={isCheckingOut || items.length === 0}
-                        className="px-4 py-3 rounded-lg border border-blue-200 text-blue-600 font-medium hover:bg-blue-50 transition-colors disabled:opacity-50"
+                        variant="outline"
+                        className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
                     >
                         Print Bill
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleCheckoutClick}
+                        isLoading={isCheckingOut}
                         disabled={isCheckingOut || items.length === 0}
-                        className="px-4 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25 disabled:opacity-50 disabled:shadow-none"
+                        className="w-full"
                     >
-                        {isCheckingOut ? 'Processing...' : 'Pay Now'}
-                    </button>
+                        Pay Now
+                    </Button>
                 </div>
             </div>
             {/* Pending Orders Modal */}
@@ -793,6 +797,15 @@ export function CartSidebar() {
                 <div id="printable-receipt" className="hidden print:block">
                     <div className="p-8 bg-white text-black font-mono text-sm max-w-[80mm] mx-auto">
                         <div className="text-center mb-6">
+                            {tenantDetails?.logo && (
+                                <div className="flex justify-center mb-2">
+                                    <img
+                                        src={tenantDetails.logo}
+                                        alt="Logo"
+                                        className="h-16 object-contain grayscale"
+                                    />
+                                </div>
+                            )}
                             <h1 className="text-2xl font-bold mb-2">{tenantDetails?.name || 'DINEXA POS'}</h1>
                             <p>{tenantDetails?.address || '123 Restaurant Street'}</p>
                             <p>Tel: {tenantDetails?.phoneNumber || '+1 234 567 890'}</p>
@@ -808,6 +821,9 @@ export function CartSidebar() {
                             {(lastOrder?.customer?.name || selectedCustomer?.name) && (
                                 <p>Customer: {lastOrder?.customer?.name || selectedCustomer.name}</p>
                             )}
+                            {/* Cashier & Branch Info */}
+                            <p>Cashier: {user?.firstName} {user?.lastName}</p>
+                            <p>Branch: {user?.branchName || 'Main Branch'}</p>
                         </div>
 
                         <div className="border-b border-dashed border-black mb-4"></div>

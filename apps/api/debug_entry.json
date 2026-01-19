@@ -1,21 +1,24 @@
 {
-  "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
+  "tenantId": "a1551256-3f15-4135-911f-305a08758959",
+  "tableId": "78cea022-a5c7-481d-88eb-2af99e854727",
   "items": [
     {
-      "productId": "5fb22143-5fb1-456c-a6a5-d0fd68aa114a",
+      "productId": "6caa4b2a-4ba2-4bb9-8d57-8f0a86393911",
       "quantity": 1,
-      "price": 123
+      "price": 1450
     }
   ],
-  "totalAmount": 135.3,
+  "totalAmount": 1595,
   "orderType": "dining",
+  "paymentMethod": "CASH",
   "status": "pending",
-  "paymentStatus": "PENDING",
+  "paymentStatus": "PAID",
   "user": {
-    "userId": "2ed2dd2a-2cb9-4ece-9a97-4c4784fe06fb",
-    "email": "admin@gmail.com",
-    "role": "admin",
-    "tenantId": "c4bfc976-9f18-4513-aef7-0805b3885a53",
-    "branchId": null
+    "userId": "5e26eaf6-1540-4c5b-ae97-b91fa7e1e817",
+    "email": "cashierm@sunfood.com",
+    "role": "cashier",
+    "tenantId": "a1551256-3f15-4135-911f-305a08758959",
+    "branchId": "5ce79305-45c9-4528-975b-fad1ff0c9ebe",
+    "branchName": "Sun-food Makola"
   }
 }

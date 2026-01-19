@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react';
 
 import { useAuthStore } from '@/store/auth-store';
 import axios from 'axios';
-import { Plus, Trash2, User, Pencil } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { jwtDecode } from 'jwt-decode';
+import { generateReport } from '@/lib/report-generator';
+import { Plus, Trash2, User, Pencil, Download } from 'lucide-react';
+
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { jwtDecode } from 'jwt-decode';
+import toast from 'react-hot-toast';
 
 interface User {
     id: string;
@@ -22,14 +24,17 @@ interface User {
     };
 }
 
-interface DecodedToken {
-    tenantId: string;
+interface Branch {
+    id: string;
+    name: string;
 }
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -38,111 +43,77 @@ export default function UserManagementPage() {
         role: 'cashier',
         branchId: '',
     });
-    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [error, setError] = useState('');
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = useState<string>('');
-    const [error, setError] = useState<string>('');
-
-    // Delete Confirmation State
-    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<string | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string>('');
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [branchFilter, setBranchFilter] = useState('all');
 
+    // Delete State
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
+
     useEffect(() => {
         if (token) {
             try {
-                const decoded: DecodedToken = jwtDecode(token);
+                const decoded: any = jwtDecode(token);
                 setTenantId(decoded.tenantId);
+                setCurrentUserId(decoded.sub); // Assuming 'sub' holds the user ID in the token, standard for JWT. Or check auth store. User interface defines id.Token payload usually has sub=userId. Let's verify token payload structure in Login or Auth service if unsure, but 'sub' is standard. Wait, let's check what UseAuthStore has. UseAuthStore has user object.
             } catch (error) {
                 console.error('Invalid token', error);
             }
         }
     }, [token]);
 
-    const fetchBranches = async () => {
-        try {
-            const response = await axios.get('http://localhost:3001/branches', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setBranches(response.data);
-        } catch (error) {
-            console.error('Failed to fetch branches', error);
+    useEffect(() => {
+        if (tenantId) {
+            fetchData();
         }
-    };
+    }, [tenantId]);
 
-    const fetchUsers = async () => {
+    const fetchData = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/users?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setUsers(response.data);
+            const [usersRes, branchesRes] = await Promise.all([
+                axios.get(`http://localhost:3001/users?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`http://localhost:3001/branches`, { headers: { Authorization: `Bearer ${token}` } }),
+            ]);
+            setUsers(usersRes.data);
+            setBranches(branchesRes.data);
         } catch (error) {
-            console.error('Failed to fetch users', error);
+            console.error('Failed to fetch data', error);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        if (token && tenantId) {
-            fetchUsers();
-            fetchBranches();
-        }
-    }, [token, tenantId]);
-
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
+
         try {
             if (editingUser) {
-                await axios.put(`http://localhost:3001/users/${editingUser.id}`, {
+                await axios.patch(`http://localhost:3001/users/${editingUser.id}`, {
                     ...formData,
                     branchId: formData.branchId || null,
-                    tenantId,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                }, { headers: { Authorization: `Bearer ${token}` } });
+                toast.success('User updated successfully');
             } else {
-                await axios.post('http://localhost:3001/users', {
+                await axios.post(`http://localhost:3001/users`, {
                     ...formData,
                     branchId: formData.branchId || null,
                     tenantId,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                }, { headers: { Authorization: `Bearer ${token}` } });
+                toast.success('User created successfully');
             }
             setShowModal(false);
-            setEditingUser(null);
-            fetchUsers();
-            setEditingUser(null);
-            fetchUsers();
-            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier', branchId: '' });
+            fetchData();
         } catch (error: any) {
-            console.error('Failed to save user', error);
-            if (error.response && error.response.status === 409) {
-                setError('Email already exists. Please use a different email.');
-            } else {
-                setError('Failed to save user. Please try again.');
-            }
+            setError(error.response?.data?.message || 'Failed to save user');
         }
-    };
-
-    const handleEditUser = (user: User) => {
-        setEditingUser(user);
-        setFormData({
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-            password: '', // Don't populate password
-            role: user.role,
-            branchId: user.branchId || '',
-        });
-        setShowModal(true);
-        setError('');
     };
 
     const handleDeleteUser = (id: string) => {
@@ -156,48 +127,84 @@ export default function UserManagementPage() {
             await axios.delete(`http://localhost:3001/users/${userToDelete}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            fetchUsers();
             toast.success('User deleted successfully');
-        } catch (error) {
-            console.error('Failed to delete user', error);
-            toast.error('Failed to delete user');
-        } finally {
+            fetchData();
             setShowDeleteConfirmation(false);
             setUserToDelete(null);
+        } catch (error) {
+            toast.error('Failed to delete user');
         }
     };
 
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = (
-            (user.firstName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (user.lastName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (user.email || '').toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-        const matchesBranch = branchFilter === 'all' || (branchFilter === 'none' ? !user.branchId : user.branchId === branchFilter);
+    const handleEditUser = (user: User) => {
+        setEditingUser(user);
+        setFormData({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            password: '',
+            role: user.role,
+            branchId: user.branchId || '',
+        });
+        setShowModal(true);
+    };
 
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = (user.firstName.toLowerCase() + ' ' + user.lastName.toLowerCase() + ' ' + user.email.toLowerCase()).includes(searchQuery.toLowerCase());
+        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+        const matchesBranch = branchFilter === 'all' ||
+            (branchFilter === 'none' && !user.branchId) ||
+            (user.branchId === branchFilter);
         return matchesSearch && matchesRole && matchesBranch;
     });
+
+    const handleDownloadReport = () => {
+        const columns = ['Name', 'Email', 'Role', 'Branch'];
+        const data = filteredUsers.map(user => [
+            `${user.firstName} ${user.lastName}`,
+            user.email,
+            user.role.toUpperCase(),
+            user.branch?.name || '-'
+        ]);
+
+        generateReport({
+            title: 'Staff List Report',
+            columns,
+            data,
+            filename: 'staff_report',
+            tenantId,
+            token: token || ''
+        });
+    };
 
     return (
         <>
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
                         <p className="text-gray-500">Manage staff accounts and roles</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingUser(null);
-                            setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier', branchId: '' });
-                            setError('');
-                            setShowModal(true);
-                        }}
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={20} /> Add User
-                    </button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={handleDownloadReport}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                        >
+                            <Download size={20} />
+                            <span className="hidden sm:inline">Download List</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingUser(null);
+                                setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'cashier', branchId: '' });
+                                setError('');
+                                setShowModal(true);
+                            }}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={20} /> Add User
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -361,8 +368,11 @@ export default function UserManagementPage() {
                                     <select
                                         value={formData.role}
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                        className="w-full p-2 border rounded-lg mt-1"
+                                        className="w-full p-2 border rounded-lg mt-1 disabled:opacity-50 disabled:bg-gray-100"
+                                        disabled={editingUser?.id === currentUserId}
+                                        title={editingUser?.id === currentUserId ? "You cannot change your own role" : ""}
                                     >
+                                        <option value="admin">Admin</option>
                                         <option value="manager">Manager</option>
                                         <option value="cashier">Cashier</option>
                                         <option value="kitchen">Kitchen</option>

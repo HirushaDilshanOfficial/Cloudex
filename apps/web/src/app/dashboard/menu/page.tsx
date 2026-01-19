@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Image as ImageIcon, X, AlertTriangle, List, Upload } from 'lucide-react';
-import api from '@/lib/api';
+import { generateReport } from '@/lib/report-generator';
+import { Plus, Search, Edit, Trash2, Image as ImageIcon, X, AlertTriangle, List, Upload, Download } from 'lucide-react';
+
+import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
@@ -13,38 +15,40 @@ interface Product {
     description: string;
     price: number;
     category: string;
-    isAvailable: boolean;
     imageUrl?: string;
+    isAvailable: boolean;
+}
+
+interface Category {
+    id: string;
+    name: string;
 }
 
 export default function MenuPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const token = useAuthStore((state) => state.token);
-    const [tenantId, setTenantId] = useState<string>('');
-
-    // Modal States
     const [showModal, setShowModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-    // Selection States
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [productToDelete, setProductToDelete] = useState<string | null>(null);
-
-    // Category States
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
-
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        price: '' as string | number,
-        category: 'Main Course',
+        price: '',
+        category: '',
+        imageUrl: '',
         isAvailable: true,
-        imageUrl: ''
     });
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const token = useAuthStore((state) => state.token);
+    const [tenantId, setTenantId] = useState<string>('');
+
+    // Category State
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    // Delete State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         if (token) {
@@ -58,24 +62,17 @@ export default function MenuPage() {
     }, [token]);
 
     useEffect(() => {
-        if (token && tenantId) {
-            fetchProducts();
+        if (tenantId) {
+            fetchData();
             fetchCategories();
         }
-    }, [token, tenantId]);
+    }, [tenantId]);
 
-    const fetchCategories = async () => {
+    const fetchData = async () => {
         try {
-            const response = await api.get(`/categories?tenantId=${tenantId}`);
-            setCategories(response.data);
-        } catch (error) {
-            console.error('Failed to fetch categories', error);
-        }
-    };
-
-    const fetchProducts = async () => {
-        try {
-            const response = await api.get(`/products?tenantId=${tenantId}`);
+            const response = await axios.get(`http://localhost:3001/products?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setProducts(response.data);
         } catch (error) {
             console.error('Failed to fetch products', error);
@@ -84,22 +81,28 @@ export default function MenuPage() {
         }
     };
 
-    const resetForm = () => {
+    const fetchCategories = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/categories?tenantId=${tenantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setCategories(response.data);
+        } catch (error) {
+            console.error('Failed to fetch categories', error);
+        }
+    };
+
+    const handleOpenCreate = () => {
+        setSelectedProduct(null);
         setFormData({
             name: '',
             description: '',
             price: '',
-            category: 'Main Course',
+            category: '',
+            imageUrl: '',
             isAvailable: true,
-            imageUrl: ''
         });
-
         setImageFile(null);
-        setSelectedProduct(null);
-    };
-
-    const handleOpenCreate = () => {
-        resetForm();
         setShowModal(true);
     };
 
@@ -107,67 +110,46 @@ export default function MenuPage() {
         setSelectedProduct(product);
         setFormData({
             name: product.name,
-            description: product.description || '',
-            price: product.price,
-            category: product.category || 'Main Course',
+            description: product.description,
+            price: product.price.toString(),
+            category: product.category,
+            imageUrl: product.imageUrl || '',
             isAvailable: product.isAvailable,
-            imageUrl: product.imageUrl || ''
         });
         setImageFile(null);
         setShowModal(true);
     };
 
     const handleSubmit = async () => {
-        // Validation
-        if (!formData.name.trim()) {
-            toast.error('Product name is required');
-            return;
-        }
-
-        const priceValue = Number(formData.price);
-        if (isNaN(priceValue) || priceValue <= 0) {
-            toast.error('Price must be greater than 0');
-            return;
-        }
-        if (!formData.category) {
-            toast.error('Category is required');
-            return;
-        }
-
         try {
-            const formDataToSend = new FormData();
-            formDataToSend.append('name', formData.name);
-            formDataToSend.append('description', formData.description);
-            formDataToSend.append('price', String(priceValue));
-            formDataToSend.append('category', formData.category);
-            formDataToSend.append('isAvailable', String(formData.isAvailable));
-            formDataToSend.append('tenantId', tenantId);
+            // Use existing imageUrl or the one from formData
+            // Note: Image upload logic removed as CloudinaryService is not available
+            const imageUrl = formData.imageUrl;
 
-            if (imageFile) {
-                formDataToSend.append('image', imageFile);
-            } else if (formData.imageUrl) {
-                formDataToSend.append('imageUrl', formData.imageUrl);
-            }
+            const payload = {
+                ...formData,
+                price: parseFloat(formData.price),
+                imageUrl,
+                tenantId,
+            };
 
             if (selectedProduct) {
-                // Update existing product
-                await api.patch(`/products/${selectedProduct.id}`, formDataToSend, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                await axios.patch(`http://localhost:3001/products/${selectedProduct.id}`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
-                toast.success('Product updated successfully!');
+                toast.success('Product updated successfully');
             } else {
-                // Create new product
-                await api.post('/products', formDataToSend, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                await axios.post('http://localhost:3001/products', payload, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
-                toast.success('Product created successfully!');
+                toast.success('Product created successfully');
             }
+
             setShowModal(false);
-            resetForm();
-            fetchProducts();
-        } catch (error: any) {
+            fetchData();
+        } catch (error) {
             console.error('Failed to save product', error);
-            toast.error(`Failed to save product: ${error.response?.data?.message || error.message}`);
+            toast.error('Failed to save product');
         }
     };
 
@@ -179,24 +161,30 @@ export default function MenuPage() {
     const handleDelete = async () => {
         if (!productToDelete) return;
         try {
-            await api.delete(`/products/${productToDelete}`);
-            fetchProducts();
+            await axios.delete(`http://localhost:3001/products/${productToDelete}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             toast.success('Product deleted successfully');
+            fetchData();
             setShowDeleteModal(false);
             setProductToDelete(null);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to delete product', error);
-            toast.error(`Failed to delete product: ${error.response?.data?.message || error.message}`);
+            toast.error('Failed to delete product');
         }
     };
 
+    // Category Handlers
     const handleAddCategory = async () => {
         if (!newCategoryName.trim()) return;
         try {
-            await api.post('/categories', { name: newCategoryName, tenantId });
+            await axios.post(`http://localhost:3001/categories`, {
+                name: newCategoryName,
+                tenantId
+            }, { headers: { Authorization: `Bearer ${token}` } });
+            toast.success('Category added');
             setNewCategoryName('');
             fetchCategories();
-            toast.success('Category added');
         } catch (error) {
             toast.error('Failed to add category');
         }
@@ -205,9 +193,11 @@ export default function MenuPage() {
     const handleDeleteCategory = async (id: string) => {
         if (!confirm('Delete this category?')) return;
         try {
-            await api.delete(`/categories/${id}`);
-            fetchCategories();
+            await axios.delete(`http://localhost:3001/categories/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             toast.success('Category deleted');
+            fetchCategories();
         } catch (error) {
             toast.error('Failed to delete category');
         }
@@ -215,12 +205,33 @@ export default function MenuPage() {
 
     const handleLoadDefaults = async () => {
         try {
-            await api.post('/categories/defaults', { tenantId });
-            fetchCategories();
+            await axios.post(`http://localhost:3001/categories/seed-defaults`, { tenantId }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             toast.success('Default categories loaded');
+            fetchCategories();
         } catch (error) {
             toast.error('Failed to load defaults');
         }
+    };
+
+    const handleDownloadReport = () => {
+        const columns = ['Product Name', 'Category', 'Price', 'Status'];
+        const data = products.map(product => [
+            product.name,
+            product.category,
+            `LKR ${Number(product.price).toFixed(2)}`,
+            product.isAvailable ? 'Available' : 'Unavailable'
+        ]);
+
+        generateReport({
+            title: 'Menu Report',
+            columns,
+            data,
+            filename: 'menu_report',
+            tenantId,
+            token: token || ''
+        });
     };
 
     return (
@@ -231,6 +242,13 @@ export default function MenuPage() {
                     <p className="text-gray-500">Manage your restaurant's menu items</p>
                 </div>
                 <div className="flex gap-2">
+                    <button
+                        onClick={handleDownloadReport}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                        <Download size={20} />
+                        <span>Download Menu</span>
+                    </button>
                     <button
                         onClick={() => setShowCategoryModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -288,7 +306,13 @@ export default function MenuPage() {
                                         step="0.01"
                                         className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                         value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            if (val >= 0 || e.target.value === '') {
+                                                setFormData({ ...formData, price: e.target.value });
+                                            }
+                                        }}
+                                        min="0"
                                     />
                                 </div>
                                 <div>

@@ -1,9 +1,8 @@
 {
-  "firstName": "Chethiya",
-  "lastName": "Lakmal",
-  "email": "kitchenk@sunfood.com",
+  "firstName": "Kasun",
+  "lastName": "Perera",
+  "email": "managerm@sunfood.com",
   "password": "",
-  "role": "kitchen",
-  "branchId": "770f755e-1420-4bb4-b987-54c95d1582df",
-  "tenantId": "a1551256-3f15-4135-911f-305a08758959"
+  "role": "manager",
+  "branchId": "5ce79305-45c9-4528-975b-fad1ff0c9ebe"
 }

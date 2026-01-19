@@ -15,11 +15,11 @@ export class StockAlert {
     @Column()
     ingredientId: string;
 
-    @ManyToOne(() => Ingredient)
+    @ManyToOne(() => Ingredient, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'ingredientId' })
     ingredient: Ingredient;
 
-    @Column()
+    @Column({ nullable: true })
     branchId: string;
 
     @ManyToOne(() => Branch)
@@ -38,6 +38,9 @@ export class StockAlert {
 
     @Column({ nullable: true })
     notes: string;
+
+    @Column('decimal', { precision: 10, scale: 2, default: 0 })
+    threshold: number;
 
     @CreateDateColumn()
     createdAt: Date;

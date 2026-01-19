@@ -10,7 +10,7 @@ export class RecipeItem {
     @ManyToOne(() => Recipe, (recipe) => recipe.items, { onDelete: 'CASCADE' })
     recipe: Recipe;
 
-    @ManyToOne(() => Ingredient)
+    @ManyToOne(() => Ingredient, { onDelete: 'CASCADE' })
     ingredient: Ingredient;
 
     @Column()

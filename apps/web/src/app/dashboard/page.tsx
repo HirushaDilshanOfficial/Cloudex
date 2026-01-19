@@ -5,6 +5,7 @@ import { ShoppingBag, DollarSign, TrendingUp, Clock, Wallet } from 'lucide-react
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
+import { useTranslation } from 'react-i18next';
 
 export default function TenantDashboardPage() {
     const [stats, setStats] = React.useState({
@@ -18,6 +19,13 @@ export default function TenantDashboardPage() {
     const [loading, setLoading] = React.useState(true);
     const token = useAuthStore((state) => state.token);
     const [tenantId, setTenantId] = React.useState<string>('');
+    const [mounted, setMounted] = React.useState(false);
+
+    const { t } = useTranslation('common');
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     React.useEffect(() => {
         if (token) {
@@ -54,7 +62,7 @@ export default function TenantDashboardPage() {
         }
     };
 
-    if (loading) {
+    if (loading || !mounted) {
         return <div className="p-8 text-center text-gray-500">Loading dashboard...</div>;
     }
 
@@ -62,20 +70,20 @@ export default function TenantDashboardPage() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatsCard title="Today's Sales" value={`LKR ${Number(stats.totalRevenue).toFixed(2)}`} icon={<DollarSign className="text-green-500" />} />
-                <StatsCard title="Total Orders" value={stats.totalOrders.toString()} icon={<ShoppingBag className="text-blue-500" />} />
+                <StatsCard title={t('total') + ' ' + t('orders')} value={stats.totalOrders.toString()} icon={<ShoppingBag className="text-blue-500" />} />
                 <StatsCard title="Avg. Order Value" value={`LKR ${Number(stats.avgOrderValue).toFixed(2)}`} icon={<TrendingUp className="text-purple-500" />} />
-                <StatsCard title="Total Profit" value={`LKR ${Number(stats.totalProfit).toFixed(2)}`} icon={<Wallet className="text-orange-500" />} />
+                <StatsCard title={t('total') + ' ' + t('profit')} value={`LKR ${Number(stats.totalProfit).toFixed(2)}`} icon={<Wallet className="text-orange-500" />} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Orders</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('orders')}</h3>
                     <div className="space-y-4">
                         {recentOrders.map((order) => (
                             <div key={order.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
                                 <div>
                                     <h4 className="font-medium text-gray-800">Order #{order.orderNumber || order.id.slice(0, 8)}</h4>
-                                    <p className="text-sm text-gray-500">{order.items?.length || 0} items • {order.orderType}</p>
+                                    <p className="text-sm text-gray-500">{order.items?.length || 0} {t('items')} • {order.orderType}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-gray-900">LKR {Number(order.totalAmount).toFixed(2)}</p>
@@ -89,7 +97,7 @@ export default function TenantDashboardPage() {
                             </div>
                         ))}
                         {recentOrders.length === 0 && (
-                            <p className="text-gray-500 text-center py-4">No recent orders</p>
+                            <p className="text-gray-500 text-center py-4">{t('noNotifications')}</p>
                         )}
                     </div>
                 </div>

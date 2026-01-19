@@ -2,82 +2,72 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { Plus, Search, AlertTriangle, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle, CheckCircle } from 'lucide-react';
-import api from '@/lib/api';
+import { generateReport } from '@/lib/report-generator';
+import { Plus, Search, AlertTriangle, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle, CheckCircle, Download, History } from 'lucide-react';
+
+import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 
 interface Ingredient {
     id: string;
     name: string;
     unit: string;
-    currentStock: number;
     costPerUnit: number;
+    currentStock: number;
+    branchId?: string;
     branch?: {
         id: string;
         name: string;
     };
 }
 
-interface Branch {
-    id: string;
-    name: string;
-}
-
-interface DecodedToken {
-    tenantId: string;
-}
-
 interface Alert {
     id: string;
-    ingredient: {
-        name: string;
-    };
-    branch: {
-        name: string;
-    };
-    notes: string;
+    ingredient: Ingredient;
+    branch: { name: string };
     createdAt: string;
+    notes?: string;
 }
 
 export default function InventoryPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        unit: 'kg',
+        costPerUnit: 0,
+        currentStock: 0,
+        branchId: '',
+    });
+    const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
     const token = useAuthStore((state) => state.token);
-
-    const [branches, setBranches] = useState<Branch[]>([]);
     const [tenantId, setTenantId] = useState<string>('');
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-
-    // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [filterBranch, setFilterBranch] = useState('all');
+    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
 
-    // Modals
-    const [showModal, setShowModal] = useState(false);
+    // Adjust Stock State
     const [showAdjustModal, setShowAdjustModal] = useState(false);
-    const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
     const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+    const [adjustData, setAdjustData] = useState({ type: 'IN', quantity: 0, reason: '' });
+
+    // Delete State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [ingredientToDelete, setIngredientToDelete] = useState<string | null>(null);
 
-    // Form Data
-    const [formData, setFormData] = useState<{
-        name: string;
-        unit: string;
-        costPerUnit: number | string;
-        currentStock: number | string;
-        branchId: string;
-    }>({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
+    const [isSaving, setIsSaving] = useState(false);
     const [isBranchSpecific, setIsBranchSpecific] = useState(false);
-    const [adjustData, setAdjustData] = useState({ quantity: 0, type: 'IN', reason: '' });
 
     useEffect(() => {
         if (token) {
             try {
-                const decoded: DecodedToken = jwtDecode(token);
+                const decoded: any = jwtDecode(token);
                 setTenantId(decoded.tenantId);
             } catch (error) {
                 console.error('Invalid token', error);
@@ -85,78 +75,54 @@ export default function InventoryPage() {
         }
     }, [token]);
 
-    const fetchIngredients = async () => {
+    const fetchData = async () => {
         try {
-            const response = await api.get(`/inventory/ingredients?tenantId=${tenantId}`);
-            setIngredients(response.data);
+            const [ingredientsRes, branchesRes, alertsRes] = await Promise.all([
+                axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`http://localhost:3001/branches`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`http://localhost:3001/inventory/alerts?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
+            ]);
+            setIngredients(ingredientsRes.data);
+            setBranches(branchesRes.data);
+            setAlerts(alertsRes.data);
         } catch (error) {
-            console.error('Failed to fetch ingredients', error);
+            console.error('Failed to fetch data', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchBranches = async () => {
-        try {
-            const response = await api.get(`/branches?tenantId=${tenantId}`);
-            setBranches(response.data);
-        } catch (error) {
-            console.error('Failed to fetch branches', error);
-        }
-    };
-
-    const fetchAlerts = async () => {
-        try {
-            const response = await api.get(`/inventory/alerts?tenantId=${tenantId}`);
-            setAlerts(response.data);
-        } catch (error) {
-            console.error('Failed to fetch alerts', error);
-        }
-    };
-
-    const handleResolveAlert = async (id: string) => {
-        try {
-            await api.patch(`/inventory/alerts/${id}/resolve`);
-            toast.success('Alert resolved');
-            fetchAlerts();
-        } catch (error) {
-            console.error('Failed to resolve alert', error);
-            toast.error('Failed to resolve alert');
-        }
-    };
-
     useEffect(() => {
         if (token && tenantId) {
-            fetchIngredients();
-            fetchBranches();
-            fetchAlerts();
+            fetchData();
         }
     }, [token, tenantId]);
 
     const handleSave = async () => {
+        setIsSaving(true);
         try {
-            const payload = {
-                ...formData,
-                costPerUnit: Number(formData.costPerUnit),
-                currentStock: Number(formData.currentStock),
-                tenantId,
-                branchId: formData.branchId || null, // Convert empty string to null
-            };
-
             if (editingIngredient) {
-                await api.patch(`/inventory/ingredients/${editingIngredient.id}`, payload);
+                await axios.patch(`http://localhost:3001/inventory/ingredients/${editingIngredient.id}`, {
+                    ...formData,
+                    branchId: isBranchSpecific ? formData.branchId : null,
+                }, { headers: { Authorization: `Bearer ${token}` } });
                 toast.success('Ingredient updated successfully');
             } else {
-                await api.post('/inventory/ingredients', payload);
+                await axios.post(`http://localhost:3001/inventory/ingredients`, {
+                    ...formData,
+                    branchId: isBranchSpecific ? formData.branchId : null,
+                    tenantId,
+                }, { headers: { Authorization: `Bearer ${token}` } });
                 toast.success('Ingredient created successfully');
             }
             setShowModal(false);
             setEditingIngredient(null);
-            setFormData({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
-            fetchIngredients();
+            fetchData();
         } catch (error) {
             console.error('Failed to save ingredient', error);
             toast.error('Failed to save ingredient');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -168,35 +134,17 @@ export default function InventoryPage() {
     const confirmDelete = async () => {
         if (!ingredientToDelete) return;
         try {
-            await api.delete(`/inventory/ingredients/${ingredientToDelete}`);
+            await axios.delete(`http://localhost:3001/inventory/ingredients/${ingredientToDelete}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             toast.success('Ingredient deleted successfully');
-            fetchIngredients();
+            fetchData();
+        } catch (error) {
+            console.error('Failed to delete ingredient', error);
+            toast.error('Failed to delete ingredient');
+        } finally {
             setShowDeleteModal(false);
             setIngredientToDelete(null);
-        } catch (error: any) {
-            console.error('Failed to delete ingredient', error);
-            toast.error(error.response?.data?.message || 'Failed to delete ingredient');
-        }
-    };
-
-    const handleAdjustStock = async () => {
-        if (!selectedIngredient) return;
-        try {
-            await api.post('/inventory/stock', {
-                ingredientId: selectedIngredient.id,
-                quantity: adjustData.quantity,
-                type: adjustData.type,
-                reason: adjustData.reason || 'Manual adjustment',
-                tenantId,
-            });
-            toast.success('Stock adjusted successfully');
-            setShowAdjustModal(false);
-            setSelectedIngredient(null);
-            setAdjustData({ quantity: 0, type: 'IN', reason: '' });
-            fetchIngredients();
-        } catch (error) {
-            console.error('Failed to adjust stock', error);
-            toast.error('Failed to adjust stock');
         }
     };
 
@@ -207,23 +155,78 @@ export default function InventoryPage() {
             unit: ingredient.unit,
             costPerUnit: ingredient.costPerUnit,
             currentStock: ingredient.currentStock,
-            branchId: ingredient.branch?.id || '',
+            branchId: ingredient.branchId || '',
         });
-        setIsBranchSpecific(!!ingredient.branch);
+        setIsBranchSpecific(!!ingredient.branchId);
         setShowModal(true);
     };
 
     const openAdjustModal = (ingredient: Ingredient) => {
         setSelectedIngredient(ingredient);
-        setAdjustData({ quantity: 0, type: 'IN', reason: '' });
+        setAdjustData({ type: 'IN', quantity: 0, reason: '' });
         setShowAdjustModal(true);
     };
 
-    const filteredIngredients = ingredients.filter(ingredient => {
-        const matchesSearch = ingredient.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesBranch = filterBranch === 'all' || ingredient.branch?.id === filterBranch;
+    const handleAdjustStock = async () => {
+        if (!selectedIngredient) return;
+        setIsSaving(true);
+        try {
+            await axios.post(`http://localhost:3001/inventory/stock`, {
+                ingredientId: selectedIngredient.id,
+                type: adjustData.type,
+                quantity: adjustData.quantity,
+                reason: adjustData.reason,
+                tenantId,
+            }, { headers: { Authorization: `Bearer ${token}` } });
+            toast.success('Stock adjusted successfully');
+            setShowAdjustModal(false);
+            fetchData();
+        } catch (error) {
+            console.error('Failed to adjust stock', error);
+            toast.error('Failed to adjust stock');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleResolveAlert = async (id: string) => {
+        try {
+            await axios.patch(`http://localhost:3001/inventory/alerts/${id}/resolve`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Alert resolved');
+            fetchData();
+        } catch (error) {
+            console.error('Failed to resolve alert', error);
+            toast.error('Failed to resolve alert');
+        }
+    };
+
+    const filteredIngredients = ingredients.filter(i => {
+        const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesBranch = filterBranch === 'all' || (i.branchId === filterBranch);
         return matchesSearch && matchesBranch;
     });
+
+    const handleDownloadReport = () => {
+        const columns = ['Ingredient Name', 'Current Stock', 'Unit', 'Cost per Unit', 'Status'];
+        const data = ingredients.map(item => [
+            item.name,
+            item.currentStock.toString(),
+            item.unit,
+            `LKR ${Number(item.costPerUnit).toFixed(2)}`,
+            item.currentStock < 10 ? 'Low Stock' : 'In Stock'
+        ]);
+
+        generateReport({
+            title: 'Inventory Report',
+            columns,
+            data,
+            filename: 'inventory_report',
+            tenantId,
+            token: token || ''
+        });
+    };
 
     return (
         <>
@@ -232,18 +235,27 @@ export default function InventoryPage() {
                     <h1 className="text-2xl font-bold text-gray-800">Inventory</h1>
                     <p className="text-gray-500">Manage your ingredients and stock levels</p>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingIngredient(null);
-                        setFormData({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
-                        setIsBranchSpecific(false);
-                        setShowModal(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                    <Plus size={20} />
-                    <span>Add Ingredient</span>
-                </button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <Button
+                        variant="outline"
+                        onClick={handleDownloadReport}
+                        className="flex items-center gap-2"
+                    >
+                        <Download size={20} />
+                        <span className="hidden sm:inline">Download Report</span>
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setEditingIngredient(null);
+                            setFormData({ name: '', unit: 'kg', costPerUnit: 0, currentStock: 0, branchId: '' });
+                            setIsBranchSpecific(false);
+                            setShowModal(true);
+                        }}
+                    >
+                        <Plus size={20} className="mr-2" />
+                        Add Ingredient
+                    </Button>
+                </div>
             </div>
 
             {alerts.length > 0 && (
@@ -256,7 +268,7 @@ export default function InventoryPage() {
                             <div key={alert.id} className="bg-white p-4 rounded-lg border border-yellow-100 shadow-sm flex justify-between items-start">
                                 <div>
                                     <p className="font-bold text-gray-800">{alert.ingredient.name}</p>
-                                    <p className="text-xs text-gray-500 mb-1">{alert.branch.name} • {new Date(alert.createdAt).toLocaleTimeString()}</p>
+                                    <p className="text-xs text-gray-500 mb-1">{alert.branch?.name || 'All Branches'} • {new Date(alert.createdAt).toLocaleTimeString()}</p>
                                     {alert.notes && <p className="text-sm text-gray-600 italic">"{alert.notes}"</p>}
                                 </div>
                                 <button
@@ -404,7 +416,8 @@ export default function InventoryPage() {
                                             type="number"
                                             className="w-full p-2 border rounded-lg"
                                             value={formData.costPerUnit}
-                                            onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, costPerUnit: parseFloat(e.target.value) || 0 })}
+                                            min="0"
                                         />
                                     </div>
                                 </div>
@@ -415,7 +428,8 @@ export default function InventoryPage() {
                                             type="number"
                                             className="w-full p-2 border rounded-lg"
                                             value={formData.currentStock}
-                                            onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, currentStock: parseFloat(e.target.value) || 0 })}
+                                            min="0"
                                         />
                                     </div>
                                 )}
@@ -464,12 +478,12 @@ export default function InventoryPage() {
                                 >
                                     Cancel
                                 </button>
-                                <button
+                                <Button
                                     onClick={handleSave}
-                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                    isLoading={isSaving}
                                 >
                                     {editingIngredient ? 'Save Changes' : 'Create'}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -502,8 +516,11 @@ export default function InventoryPage() {
                                     <input
                                         type="number"
                                         className="w-full p-2 border rounded-lg"
-                                        value={adjustData.quantity}
-                                        onChange={(e) => setAdjustData({ ...adjustData, quantity: parseFloat(e.target.value) })}
+                                        value={adjustData.quantity || ''}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setAdjustData({ ...adjustData, quantity: isNaN(val) ? 0 : val });
+                                        }}
                                         min="0"
                                     />
                                 </div>
@@ -525,12 +542,12 @@ export default function InventoryPage() {
                                 >
                                     Cancel
                                 </button>
-                                <button
+                                <Button
                                     onClick={handleAdjustStock}
-                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                    isLoading={isSaving}
                                 >
                                     Confirm Adjustment
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

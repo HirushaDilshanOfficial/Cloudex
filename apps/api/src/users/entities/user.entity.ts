@@ -43,4 +43,10 @@ export class User extends BaseEntity {
     @ManyToOne('Branch', { nullable: true })
     @JoinColumn({ name: 'branchId' })
     branch: any;
+
+    @Column({ nullable: true })
+    resetPasswordToken: string;
+
+    @Column({ nullable: true })
+    resetPasswordExpires: Date;
 }

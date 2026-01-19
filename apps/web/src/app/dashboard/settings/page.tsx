@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Save, Building, DollarSign, Printer, Store } from 'lucide-react';
 import { BranchesSettings } from '@/components/settings/branches-settings';
+import { LanguageSwitcher } from '@/components/common/language-switcher';
 import { jwtDecode } from 'jwt-decode';
 
 interface TenantSettings {
@@ -13,6 +14,7 @@ interface TenantSettings {
     name: string;
     address: string;
     phone: string;
+    logo: string;
     currency: string;
     taxName: string;
     taxRate: number;
@@ -29,6 +31,7 @@ export default function SettingsPage() {
         name: '',
         address: '',
         phone: '',
+        logo: '',
         currency: 'USD',
         taxName: 'Tax',
         taxRate: 0,
@@ -178,6 +181,37 @@ export default function SettingsPage() {
                                                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                                                 className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                             />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+                                            <div className="flex gap-4 items-start">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={settings.logo || ''}
+                                                        onChange={(e) => setSettings({ ...settings, logo: e.target.value })}
+                                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                        placeholder="https://example.com/logo.png"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Enter a direct URL to your logo image (PNG, JPG, SVG)</p>
+                                                </div>
+                                                {settings.logo && (
+                                                    <div className="w-16 h-16 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                                                        <img
+                                                            src={settings.logo}
+                                                            alt="Logo Preview"
+                                                            className="max-w-full max-h-full object-contain"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64?text=Error';
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                                            <LanguageSwitcher />
                                         </div>
                                     </div>
                                 )}

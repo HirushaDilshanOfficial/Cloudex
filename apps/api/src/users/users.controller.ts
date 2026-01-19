@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Query, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Query, Patch, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -35,9 +35,9 @@ export class UsersController {
         return this.usersService.remove(id);
     }
 
-    @Put(':id')
+    @Patch(':id')
     @Roles(UserRole.ADMIN)
-    update(@Param('id') id: string, @Body() updateUserDto: any) {
-        return this.usersService.update(id, updateUserDto);
+    update(@Param('id') id: string, @Body() updateUserDto: any, @Request() req) {
+        return this.usersService.update(id, updateUserDto, req.user.userId);
     }
 }
