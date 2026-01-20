@@ -216,4 +216,45 @@ export class EmailService {
             // Don't throw error to prevent blocking the main flow
         }
     }
+
+    async sendContactEmail(data: { firstName: string; lastName: string; email: string; message: string }) {
+        try {
+            console.log(`Attempting to send contact form email from ${data.email}`);
+
+            if (!this.transporter) {
+                await this.createTransporter();
+            }
+
+            const info = await this.transporter.sendMail({
+                from: '"Cloudex Contact Form" <noreply@cloudex.com>',
+                to: 'hirushadilshan255@gmail.com',
+                replyTo: data.email,
+                subject: `New Contact Message from ${data.firstName} ${data.lastName}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                            <h2 style="color: #333; margin: 0;">New Contact Message</h2>
+                        </div>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                            <p><strong>Name:</strong> ${data.firstName} ${data.lastName}</p>
+                            <p><strong>Email:</strong> ${data.email}</p>
+                            <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+
+                        <div style="padding: 15px; border: 1px solid #eee; border-radius: 5px;">
+                            <p style="margin-top: 0; color: #555;"><strong>Message:</strong></p>
+                            <p style="white-space: pre-wrap; color: #333;">${data.message}</p>
+                        </div>
+                    </div>
+                `,
+            });
+
+            console.log('Contact email sent: %s', info.messageId);
+            return info;
+        } catch (error) {
+            console.error('Error sending contact email:', error);
+            throw error;
+        }
+    }
 }

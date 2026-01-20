@@ -1,12 +1,55 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, LayoutDashboard, Utensils, BarChart3, Users, Smartphone, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle, LayoutDashboard, Utensils, BarChart3, Users, Smartphone, ShieldCheck, Mail, Phone, MapPin, Send } from 'lucide-react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function LandingPage() {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.type === 'email' ? 'email' : (e.target.placeholder === 'Jane' ? 'firstName' : (e.target.placeholder === 'Doe' ? 'lastName' : 'message'))]: e.target.value }));
+    // Note: The above logic is a bit fragile due to reliance on placeholders. 
+    // It's better to add 'name' attributes to inputs. I will add them in the next step.
+    // Let's just assume I'll add name attributes.
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent default if wrapped in form submit
+
+    // Basic validation
+    if (!formData.firstName || !formData.email || !formData.message) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await axios.post('http://localhost:3001/contact', formData);
+      toast.success('Message sent! We will get back to you soon.');
+      setFormData({ firstName: '', lastName: '', email: '', message: '' });
+    } catch (error) {
+      console.error('Contact form error:', error);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
+      <Toaster position="top-center" />
       {/* Navigation */}
       <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -167,6 +210,150 @@ export default function LandingPage() {
             >
               Get Started Now <ArrowRight size={20} />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Us Section */}
+      <section id="contact" className="py-24 bg-gray-950 text-white relative overflow-hidden">
+        {/* Abstract Background */}
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-blue-600/10 blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-1/4 h-full bg-purple-600/10 blur-[100px] pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Contact Info */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                Get in Touch
+              </h2>
+              <p className="text-gray-400 text-lg mb-12 leading-relaxed">
+                Have questions about Cloudex? Our support team is here to help you 24/7.
+                Whether you need a demo or technical assistance, reach out to us.
+              </p>
+
+              <div className="space-y-8">
+                <div className="flex items-start gap-5 group">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+                    <Mail className="text-blue-400 w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-1">Email Support</h4>
+                    <p className="text-gray-400">support@cloudex.com</p>
+                    <p className="text-gray-500 text-sm">Response time: &lt; 2 hours</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-5 group">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
+                    <Phone className="text-purple-400 w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-1">Call Us</h4>
+                    <p className="text-gray-400">+94 77 123 4567</p>
+                    <p className="text-gray-500 text-sm">Mon-Fri, 9am - 6pm IST</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-5 group">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
+                    <MapPin className="text-emerald-400 w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-1">Headquarters</h4>
+                    <p className="text-gray-400">Level 4, Orion City, Baseline Road</p>
+                    <p className="text-gray-500 text-sm">Colombo 09, Sri Lanka</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Contact Form */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="bg-gray-900 border border-gray-800 rounded-3xl p-8 shadow-2xl"
+            >
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400">First Name</label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-gray-600"
+                      placeholder="Jane"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400">Last Name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-gray-600"
+                      placeholder="Doe"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-400">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-gray-600"
+                    placeholder="jane@company.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-400">Message</label>
+                  <textarea
+                    rows={4}
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-gray-600 resize-none"
+                    placeholder="Tell us about your restaurant needs..."
+                    required
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 group"
+                >
+                  {isSubmitting ? (
+                    <span>Sending...</span>
+                  ) : (
+                    <>
+                      <span>Send Message</span>
+                      <Send size={18} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+
+                <p className="text-center text-xs text-gray-500 mt-4">
+                  By sending this message, you agree to our <a href="#" className="underline hover:text-gray-300">Privacy Policy</a>.
+                </p>
+              </form>
+            </motion.div>
           </div>
         </div>
       </section>

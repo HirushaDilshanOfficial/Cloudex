@@ -16,6 +16,7 @@ import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ContactModule } from './contact/contact.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -50,6 +51,7 @@ import { AppService } from './app.service';
     CustomersModule,
     NotificationsModule,
     CategoriesModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [AppService],
