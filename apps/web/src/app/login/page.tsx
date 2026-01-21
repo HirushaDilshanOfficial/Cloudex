@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth-store';
@@ -22,8 +22,28 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const token = useAuthStore((state) => state.token);
     const setToken = useAuthStore((state) => state.setToken);
     const setUser = useAuthStore((state) => state.setUser);
+
+    React.useEffect(() => {
+        if (token) {
+            try {
+                const decoded: DecodedToken = jwtDecode(token);
+                if (decoded.role === 'super_admin') {
+                    router.push('/admin');
+                } else if (decoded.role === 'cashier') {
+                    router.push('/pos');
+                } else if (decoded.role === 'kitchen') {
+                    router.push('/kds');
+                } else {
+                    router.push('/dashboard');
+                }
+            } catch (error) {
+                console.error('Invalid token:', error);
+            }
+        }
+    }, [token, router]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,7 +59,9 @@ export default function LoginPage() {
             setUser(user);
             const decoded: DecodedToken = jwtDecode(access_token);
 
-            if (decoded.role === 'cashier') {
+            if (decoded.role === 'super_admin') {
+                router.push('/admin');
+            } else if (decoded.role === 'cashier') {
                 router.push('/pos');
             } else if (decoded.role === 'kitchen') {
                 router.push('/kds');

@@ -19,7 +19,7 @@ export class Branch extends BaseEntity {
     @Column()
     tenantId: string;
 
-    @ManyToOne(() => Tenant, (tenant) => tenant.branches)
+    @ManyToOne(() => Tenant, (tenant) => tenant.branches, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'tenantId' })
     tenant: Tenant;
 }

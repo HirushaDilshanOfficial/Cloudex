@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-01-18T18:17:29.699Z",
-  "path": "/inventory/ingredients/31fe3b01-7b21-45e8-b350-1f2993455e1f",
+  "timestamp": "2026-01-20T19:27:54.175Z",
+  "path": "/tenants/c4bfc976-9f18-4513-aef7-0805b3885a53",
   "method": "DELETE",
   "user": {
-    "userId": "1ff4a3a0-1180-470d-b6b1-84b9910c1b3d",
-    "email": "hirushadilshan255@gmail.com",
-    "role": "admin",
-    "tenantId": "a1551256-3f15-4135-911f-305a08758959",
+    "userId": "88c7b549-18e5-403b-aaa9-241719a95bd9",
+    "email": "hirushashroff1234@gmail.com",
+    "role": "super_admin",
+    "tenantId": "4fbc0bb2-cdb6-42f6-baae-4eb8bae6ae9f",
     "branchId": null
   },
   "error": {
-    "message": "update or delete on table \"ingredients\" violates foreign key constraint \"FK_f43b4a07717a025d13fb7c4c64d\" on table \"stock_alert\"",
-    "stack": "QueryFailedError: update or delete on table \"ingredients\" violates foreign key constraint \"FK_f43b4a07717a025d13fb7c4c64d\" on table \"stock_alert\"\n    at PostgresQueryRunner.query (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/driver/src/driver/postgres/PostgresQueryRunner.ts:325:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async DeleteQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/DeleteQueryBuilder.ts:77:33)\n    at async InventoryService.remove (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/inventory/inventory.service.ts:140:9)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
+    "message": "update or delete on table \"branches\" violates foreign key constraint \"FK_038f1f210c3e04b4a0acc1dc2f2\" on table \"ingredients\"",
+    "stack": "QueryFailedError: update or delete on table \"branches\" violates foreign key constraint \"FK_038f1f210c3e04b4a0acc1dc2f2\" on table \"ingredients\"\n    at PostgresQueryRunner.query (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/driver/src/driver/postgres/PostgresQueryRunner.ts:325:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async DeleteQueryBuilder.execute (/Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/typeorm/query-builder/src/query-builder/DeleteQueryBuilder.ts:77:33)\n    at async TenantsService.remove (/Users/hirushadilshan/Desktop/Cloudex/apps/api/src/tenants/tenants.service.ts:64:9)\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-execution-context.js:46:28\n    at async /Users/hirushadilshan/Desktop/Cloudex/apps/api/node_modules/@nestjs/core/router/router-proxy.js:9:17",
     "name": "QueryFailedError"
   }
 }

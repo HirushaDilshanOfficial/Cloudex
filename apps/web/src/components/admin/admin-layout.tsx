@@ -1,8 +1,48 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import { LayoutDashboard, Users, Store, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
+import { jwtDecode } from 'jwt-decode';
+
+interface DecodedToken {
+    role: string;
+}
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
+    const token = useAuthStore((state) => state.token);
+    const setToken = useAuthStore((state) => state.setToken);
+    const router = useRouter();
+    const [mounted, setMounted] = React.useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!token) {
+            router.push('/login');
+            return;
+        }
+        try {
+            const decoded: DecodedToken = jwtDecode(token);
+            if (decoded.role !== 'super_admin') {
+                router.push('/dashboard'); // Redirect unauthorized users
+            }
+        } catch (e) {
+            router.push('/login');
+        }
+    }, [token, router]);
+
+    const handleLogout = () => {
+        setToken('');
+        router.push('/login');
+    };
+
+    if (!mounted) return null;
+
     return (
         <div className="flex h-screen bg-gray-100">
             {/* Sidebar */}
@@ -31,7 +71,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className="p-4 border-t border-slate-800">
-                    <button className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors"
+                    >
                         <LogOut size={20} />
                         <span>Logout</span>
                     </button>

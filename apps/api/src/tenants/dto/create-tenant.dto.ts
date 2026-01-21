@@ -7,6 +7,10 @@ export class CreateTenantDto {
 
     @IsString()
     @IsOptional()
+    domain?: string;
+
+    @IsString()
+    @IsOptional()
     address?: string;
 
     @IsString()

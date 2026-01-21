@@ -1,15 +1,54 @@
-import React from 'react';
-import { AdminLayout } from '@/components/admin/admin-layout';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import { Users, Store, DollarSign, Activity } from 'lucide-react';
+import { useAuthStore } from '@/store/auth-store';
+import toast from 'react-hot-toast';
+
+interface DashboardStats {
+    totalTenants: number;
+    activeUsers: number;
+    totalRevenue: string; // Returning as string/number depending on DB, but likely number. Let's format it.
+    systemHealth: number;
+    recentTenants: any[];
+}
 
 export default function AdminDashboardPage() {
+    const token = useAuthStore((state) => state.token);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+
+    useEffect(() => {
+        if (token) {
+            fetch('http://localhost:3001/tenants/dashboard-stats', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch stats');
+                    return res.json();
+                })
+                .then(data => setStats(data))
+                .catch(err => {
+                    console.error(err);
+                    toast.error('Failed to load dashboard stats');
+                });
+        }
+    }, [token]);
+
+    const formatCurrency = (amount: number | string) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0
+        }).format(Number(amount));
+    };
+
     return (
-        <AdminLayout>
+        <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatsCard title="Total Tenants" value="12" icon={<Store className="text-blue-500" />} />
-                <StatsCard title="Active Users" value="45" icon={<Users className="text-green-500" />} />
-                <StatsCard title="Total Revenue" value="$12,450" icon={<DollarSign className="text-yellow-500" />} />
-                <StatsCard title="System Health" value="98%" icon={<Activity className="text-purple-500" />} />
+                <StatsCard title="Total Tenants" value={stats?.totalTenants.toString() || '...'} icon={<Store className="text-blue-500" />} />
+                <StatsCard title="Active Users" value={stats?.activeUsers.toString() || '...'} icon={<Users className="text-green-500" />} />
+                <StatsCard title="Total Revenue" value={stats ? formatCurrency(stats.totalRevenue) : '...'} icon={<DollarSign className="text-yellow-500" />} />
+                <StatsCard title="System Health" value={stats ? `${stats.systemHealth}%` : '...'} icon={<Activity className="text-purple-500" />} />
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -19,25 +58,33 @@ export default function AdminDashboardPage() {
                         <thead>
                             <tr className="border-b border-gray-100">
                                 <th className="pb-3 font-medium text-gray-500">Name</th>
-                                <th className="pb-3 font-medium text-gray-500">Plan</th>
-                                <th className="pb-3 font-medium text-gray-500">Status</th>
+                                <th className="pb-3 font-medium text-gray-500">Address</th>
+                                <th className="pb-3 font-medium text-gray-500">Phone</th>
                                 <th className="pb-3 font-medium text-gray-500">Joined</th>
                             </tr>
                         </thead>
                         <tbody className="text-sm">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <tr key={i} className="border-b border-gray-50 last:border-0">
-                                    <td className="py-3 text-gray-800 font-medium">Restaurant {i}</td>
-                                    <td className="py-3 text-gray-600">Pro Plan</td>
-                                    <td className="py-3"><span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs">Active</span></td>
-                                    <td className="py-3 text-gray-500">Jan {i}, 2024</td>
+                            {stats?.recentTenants.map((tenant: any) => (
+                                <tr key={tenant.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                                    <td className="py-3 text-gray-800 font-medium">{tenant.name}</td>
+                                    <td className="py-3 text-gray-600">{tenant.address || '-'}</td>
+                                    <td className="py-3 text-gray-600">{tenant.phone || '-'}</td>
+                                    <td className="py-3 text-gray-500">{new Date(tenant.createdAt).toLocaleDateString()}</td>
+                                </tr>
+                            ))}
+                            {!stats && [1, 2, 3].map(i => (
+                                <tr key={i} className="animate-pulse">
+                                    <td className="py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                                    <td className="py-3"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                                    <td className="py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                                    <td className="py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 }
 

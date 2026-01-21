@@ -10,7 +10,7 @@ export class Category extends BaseEntity {
     @Column()
     tenantId: string;
 
-    @ManyToOne(() => Tenant)
+    @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'tenantId' })
     tenant: Tenant;
 }

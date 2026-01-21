@@ -1,8 +1,5 @@
 {
-  "firstName": "Kasun",
-  "lastName": "Perera",
-  "email": "managerm@sunfood.com",
-  "password": "",
-  "role": "manager",
-  "branchId": "5ce79305-45c9-4528-975b-fad1ff0c9ebe"
+  "email": "hirushashroff1234@gmail.com",
+  "password": "123456",
+  "role": "super_admin"
 }
