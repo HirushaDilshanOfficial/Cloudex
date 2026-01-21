@@ -17,7 +17,11 @@ export class Ingredient {
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     costPerUnit: number;
 
-    @Column()
+    @ManyToOne('Tenant', { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'tenantId' })
+    tenant: any;
+
+    @Column({ nullable: true })
     tenantId: string;
 
     @Column({ nullable: true })

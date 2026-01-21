@@ -9,6 +9,9 @@ export class Tenant extends BaseEntity {
     name: string;
 
     @Column({ nullable: true })
+    domain: string;
+
+    @Column({ nullable: true })
     address: string;
 
     @Column({ nullable: true })

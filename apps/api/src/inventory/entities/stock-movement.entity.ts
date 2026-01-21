@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ingredient } from './ingredient.entity';
 
 export enum StockMovementType {
@@ -30,7 +30,11 @@ export class StockMovement {
     @Column({ nullable: true })
     reason: string;
 
-    @Column()
+    @ManyToOne('Tenant', { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'tenantId' })
+    tenant: any;
+
+    @Column({ nullable: true })
     tenantId: string;
 
     @CreateDateColumn()

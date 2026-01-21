@@ -18,6 +18,7 @@ export default function RegisterPage() {
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const router = useRouter();
     const setToken = useAuthStore((state) => state.setToken);
 
@@ -27,6 +28,12 @@ export default function RegisterPage() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!agreedToTerms) {
+            setError('You must agree to the Terms of Service and Privacy Policy to create an account.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         try {
@@ -175,6 +182,33 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
+                        {/* Terms and Conditions Checkbox */}
+                        <div className="flex items-start gap-3 pt-2">
+                            <div className="flex items-center h-5">
+                                <input
+                                    id="terms"
+                                    name="terms"
+                                    type="checkbox"
+                                    checked={agreedToTerms}
+                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                                />
+                            </div>
+                            <div className="text-sm text-gray-600 leading-snug">
+                                <label htmlFor="terms" className="cursor-pointer select-none">
+                                    I agree to the{' '}
+                                    <Link href="/legal/terms" target="_blank" className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                                        Terms of Service
+                                    </Link>{' '}
+                                    and{' '}
+                                    <Link href="/legal/privacy" target="_blank" className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                                        Privacy Policy
+                                    </Link>
+                                    .
+                                </label>
+                            </div>
+                        </div>
+
                         <Button
                             type="submit"
                             isLoading={isLoading}
@@ -203,7 +237,7 @@ export default function RegisterPage() {
                         </Link>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

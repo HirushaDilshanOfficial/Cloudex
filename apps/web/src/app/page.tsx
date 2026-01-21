@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, CheckCircle, LayoutDashboard, Utensils, BarChart3, Users, Smartphone, ShieldCheck, Mail, Phone, MapPin, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -66,6 +67,7 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-600 hover:text-primary transition-colors">Features</a>
               <a href="#pricing" className="text-gray-600 hover:text-primary transition-colors">Pricing</a>
               <a href="#about" className="text-gray-600 hover:text-primary transition-colors">About</a>
+              <a href="#contact" className="text-gray-600 hover:text-primary transition-colors">Contact</a>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login" className="text-gray-600 hover:text-primary font-medium transition-colors">
@@ -126,14 +128,15 @@ export default function LandingPage() {
           {/* Dashboard Preview */}
           <div className="mt-20 relative mx-auto max-w-5xl">
             <div className="bg-gray-900 rounded-2xl p-2 shadow-2xl border border-gray-800">
-              <div className="bg-gray-800 rounded-xl overflow-hidden aspect-video relative">
-                <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                  {/* Placeholder for Dashboard Screenshot */}
-                  <div className="text-center">
-                    <LayoutDashboard size={64} className="mx-auto mb-4 opacity-50" />
-                    <p>Dashboard Preview</p>
-                  </div>
-                </div>
+              <div className="bg-gray-800 rounded-xl overflow-hidden aspect-video relative group">
+                <Image
+                  src="/images/dashboard-preview.png"
+                  alt="Cloudex Dashboard Preview"
+                  fill
+                  className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent pointer-events-none" />
               </div>
             </div>
           </div>
@@ -191,6 +194,164 @@ export default function LandingPage() {
                 <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Choose the plan that fits your restaurant's size and needs. No hidden fees.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Starter Plan */}
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-all relative">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Starter</h3>
+              <p className="text-gray-500 mb-6">Perfect for small cafes and food trucks.</p>
+              <div className="mb-6">
+                <span className="text-4xl font-bold text-gray-900">Free</span>
+                <span className="text-gray-500">/14 days</span>
+              </div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>1 POS Device</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>Basic Inventory</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>Email Support</span>
+                </li>
+              </ul>
+              <Link href="/register" className="block w-full py-3 px-6 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl text-center hover:bg-gray-50 transition-colors">
+                Start Free Trial
+              </Link>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800 shadow-2xl relative transform md:-translate-y-4">
+              <div className="absolute top-0 right-0 bg-gradient-to-l from-blue-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">
+                MOST POPULAR
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Professional</h3>
+              <p className="text-gray-400 mb-6">For growing restaurants and bars.</p>
+              <div className="mb-6">
+                <span className="text-4xl font-bold text-white">$49</span>
+                <span className="text-gray-400">/mo</span>
+              </div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="text-blue-400 w-5 h-5 flex-shrink-0" />
+                  <span>Unlimited Devices</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="text-blue-400 w-5 h-5 flex-shrink-0" />
+                  <span>Advanced Inventory & Recipes</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="text-blue-400 w-5 h-5 flex-shrink-0" />
+                  <span>KDS (Kitchen Display System)</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="text-blue-400 w-5 h-5 flex-shrink-0" />
+                  <span>Staff & Shift Management</span>
+                </li>
+              </ul>
+              <Link href="/register" className="block w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-xl text-center hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50">
+                Get Started
+              </Link>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-all">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise</h3>
+              <p className="text-gray-500 mb-6">For chains and franchises.</p>
+              <div className="mb-6">
+                <span className="text-4xl font-bold text-gray-900">Custom</span>
+              </div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>All Pro Features</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>Multi-location Management</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>Dedicated Account Manager</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-600">
+                  <CheckCircle className="text-blue-500 w-5 h-5 flex-shrink-0" />
+                  <span>Custom API Access</span>
+                </li>
+              </ul>
+              <Link href="/contact" className="block w-full py-3 px-6 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl text-center hover:bg-gray-50 transition-colors">
+                Contact Sales
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section id="about" className="py-24 bg-gray-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-600 text-xs font-bold mb-6">
+                OUR MISSION
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+                Empowering Restaurants with <span className="text-blue-600">Intelligent Technology</span>
+              </h2>
+              <p className="text-gray-600 text-lg mb-6 leading-relaxed">
+                At Cloudex, we believe that running a restaurant should be about passion and great food, not drowning in paperwork and disjointed systems.
+              </p>
+              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
+                Founded in 2024 by a team of foodies and engineers, we set out to build the "operating system" for modern hospitality. Today, we help thousands of venues worldwide streamline their operations, reduce waste, and deliver exceptional guest experiences.
+              </p>
+
+              <div className="grid grid-cols-2 gap-8 border-t border-gray-200 pt-8">
+                <div>
+                  <h4 className="text-4xl font-extrabold text-blue-600 mb-2">2k+</h4>
+                  <p className="text-gray-500 font-medium">Restaurants</p>
+                </div>
+                <div>
+                  <h4 className="text-4xl font-extrabold text-purple-600 mb-2">99.9%</h4>
+                  <p className="text-gray-500 font-medium">Uptime</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-bl from-blue-100 to-purple-100 rounded-3xl -z-10 transform translate-x-8 -translate-y-8"></div>
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 h-full min-h-[400px]">
+                <div className="relative h-full w-full">
+                  <Image
+                    src="/images/team-at-work.jpg"
+                    alt="Cloudex Powering Teams"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end p-8">
+                    <div>
+                      <h3 className="text-white text-xl font-bold">Built for Teams</h3>
+                      <p className="text-gray-200 mt-1">From the kitchen to the front of house.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

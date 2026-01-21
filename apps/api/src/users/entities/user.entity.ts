@@ -3,6 +3,7 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 
 export enum UserRole {
+    SUPER_ADMIN = 'super_admin',
     ADMIN = 'admin',
     MANAGER = 'manager',
     CASHIER = 'cashier',
@@ -33,7 +34,7 @@ export class User extends BaseEntity {
     @Column()
     tenantId: string;
 
-    @ManyToOne(() => Tenant, (tenant) => tenant.users)
+    @ManyToOne(() => Tenant, (tenant) => tenant.users, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'tenantId' })
     tenant: Tenant;
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put, Delete } from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -12,15 +12,21 @@ export class TenantsController {
     constructor(private readonly tenantsService: TenantsService) { }
 
     @Post()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.SUPER_ADMIN)
     create(@Body() createTenantDto: CreateTenantDto) {
         return this.tenantsService.create(createTenantDto);
     }
 
     @Get()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.SUPER_ADMIN)
     findAll() {
         return this.tenantsService.findAll();
+    }
+
+    @Get('dashboard-stats')
+    @Roles(UserRole.SUPER_ADMIN)
+    getDashboardStats() {
+        return this.tenantsService.getDashboardStats();
     }
 
     @Get(':id')
@@ -29,8 +35,14 @@ export class TenantsController {
     }
 
     @Put(':id')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.SUPER_ADMIN)
     update(@Param('id') id: string, @Body() updateTenantDto: any) {
         return this.tenantsService.update(id, updateTenantDto);
+    }
+
+    @Delete(':id')
+    @Roles(UserRole.SUPER_ADMIN)
+    remove(@Param('id') id: string) {
+        return this.tenantsService.remove(id);
     }
 }
