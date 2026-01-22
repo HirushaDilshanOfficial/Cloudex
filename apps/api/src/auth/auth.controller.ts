@@ -1,7 +1,11 @@
-import { Controller, Request, Post, UseGuards, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Request, Post, UseGuards, Body, UnauthorizedException, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '../common/decorators/public.decorator';
 import { SignUpDto } from './dto/sign-up.dto';
+import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -46,5 +50,12 @@ export class AuthController {
     @Post('reset-password')
     async resetPassword(@Body() body: { token: string; password: string }) {
         return this.authService.resetPassword(body.token, body.password);
+    }
+
+    @Post('impersonate/:tenantId')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.SUPER_ADMIN)
+    async impersonate(@Param('tenantId') tenantId: string) {
+        return this.authService.impersonateTenant(tenantId);
     }
 }

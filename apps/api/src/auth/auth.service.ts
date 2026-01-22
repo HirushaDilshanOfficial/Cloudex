@@ -125,4 +125,17 @@ export class AuthService {
 
         return { message: 'Password has been successfully reset.' };
     }
+
+    async impersonateTenant(tenantId: string) {
+        // Find an ADMIN user for this tenant
+        const users = await this.usersService.findAdminsAndManagers(tenantId);
+        const adminUser = users.find(u => u.role === UserRole.ADMIN);
+
+        if (!adminUser) {
+            throw new UnauthorizedException('No Admin user found for this tenant to impersonate.');
+        }
+
+        // Login as this user (without password check)
+        return this.login(adminUser);
+    }
 }

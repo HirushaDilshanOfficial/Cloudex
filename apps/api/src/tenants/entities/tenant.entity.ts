@@ -3,6 +3,11 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { Branch } from '../../branches/entities/branch.entity';
 
+export enum TenantStatus {
+    ACTIVE = 'ACTIVE',
+    SUSPENDED = 'SUSPENDED'
+}
+
 @Entity('tenants')
 export class Tenant extends BaseEntity {
     @Column()
@@ -34,4 +39,11 @@ export class Tenant extends BaseEntity {
 
     @OneToMany(() => Branch, (branch) => branch.tenant)
     branches: Branch[];
+
+    @Column({
+        type: 'enum',
+        enum: TenantStatus,
+        default: TenantStatus.ACTIVE
+    })
+    status: TenantStatus;
 }
