@@ -6,7 +6,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import * as fs from 'fs';
+
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -32,3 +32,4 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
     }
+}
