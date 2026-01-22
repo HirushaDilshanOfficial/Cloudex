@@ -3,9 +3,11 @@ import { initReactI18next } from 'react-i18next';
 import HttpBackend from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+if (typeof window !== 'undefined') {
+    i18n.use(HttpBackend).use(LanguageDetector);
+}
+
 i18n
-    .use(HttpBackend)
-    .use(LanguageDetector)
     .use(initReactI18next)
     .init({
         fallbackLng: 'en',
@@ -20,6 +22,10 @@ i18n
             order: ['localStorage', 'navigator'],
             caches: ['localStorage'],
         },
+        // Avoid init key resources on server if not needed or provide defaults
+        react: {
+            useSuspense: false // important for preventing suspense hang on server if no resources
+        }
     });
 
 export default i18n;
