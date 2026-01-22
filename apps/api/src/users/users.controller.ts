@@ -17,6 +17,12 @@ export class UsersController {
         return this.usersService.create(createUserDto);
     }
 
+    @Get('search')
+    @Roles(UserRole.SUPER_ADMIN)
+    search(@Query('email') email: string) {
+        return this.usersService.searchGlobal(email);
+    }
+
     @Get()
     @Roles(UserRole.ADMIN, UserRole.MANAGER)
     findAll(@Query('tenantId') tenantId: string) {

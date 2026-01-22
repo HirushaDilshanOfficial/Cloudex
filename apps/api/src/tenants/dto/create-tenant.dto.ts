@@ -1,6 +1,11 @@
-import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsEnum } from 'class-validator';
+import { TenantStatus } from '../entities/tenant.entity';
 
 export class CreateTenantDto {
+    @IsEnum(TenantStatus)
+    @IsOptional()
+    status?: TenantStatus;
+
     @IsString()
     @IsNotEmpty()
     name: string;

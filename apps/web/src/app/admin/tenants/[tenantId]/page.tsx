@@ -16,15 +16,18 @@ interface Tenant {
     isActive: boolean;
     address?: string;
     phone?: string;
+    status: 'ACTIVE' | 'SUSPENDED';
 }
 
 export default function TenantDetailPage() {
     const { tenantId } = useParams();
-    const token = useAuthStore((state) => state.token);
+    const authStore = useAuthStore();
+    const { token, setToken, setUser } = authStore;
     const router = useRouter();
     const [tenant, setTenant] = useState<Tenant | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [impersonating, setImpersonating] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
@@ -70,6 +73,48 @@ export default function TenantDetailPage() {
         }
     };
 
+    const handleImpersonate = async () => {
+        if (!tenant) return;
+        setImpersonating(true);
+        try {
+            const res = await fetch(`http://localhost:3001/auth/impersonate/${tenant.id}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to impersonate');
+
+            const data = await res.json();
+            setToken(data.access_token);
+            setUser(data.user);
+            toast.success(`Logged in as Admin for ${tenant.name}`);
+            router.push('/dashboard');
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to login as tenant admin');
+            setImpersonating(false);
+        }
+    };
+
+    const toggleStatus = () => {
+        if (!tenant) return;
+        const newStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+        setTenant({ ...tenant, status: newStatus });
+        // Auto-save logic could go here, but let's stick to the save button or immediate effect
+        // Immediate effect implementation:
+        fetch(`http://localhost:3001/tenants/${tenant.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: newStatus })
+        }).then(res => {
+            if (!res.ok) toast.error('Failed to update status');
+            else toast.success(`Tenant ${newStatus === 'ACTIVE' ? 'Activated' : 'Suspended'}`);
+        });
+    };
+
     const confirmDelete = async () => {
         if (!tenant) return;
         try {
@@ -98,14 +143,38 @@ export default function TenantDetailPage() {
                     <ArrowLeft size={20} />
                 </Link>
                 <h1 className="text-2xl font-bold text-gray-800">Manage Tenant</h1>
+
+                <div className="ml-auto flex items-center gap-3">
+                    <button
+                        onClick={handleImpersonate}
+                        disabled={impersonating}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {impersonating ? 'Logging in...' : 'Login as Admin'}
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <Building size={20} className="text-blue-500" />
-                        Basic Information
-                    </h2>
+                    <div className="flex justify-between items-start mb-6">
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <Building size={20} className="text-blue-500" />
+                            Basic Information
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${tenant.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {tenant.status || 'ACTIVE'}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={toggleStatus}
+                                className="text-sm text-blue-600 hover:underline"
+                            >
+                                {tenant.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                            </button>
+                        </div>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">

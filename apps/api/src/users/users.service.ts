@@ -99,4 +99,14 @@ export class UsersService {
             throw error;
         }
     }
+
+    async searchGlobal(emailQuery: string): Promise<User[]> {
+        return this.usersRepository.find({
+            where: {
+                email: require('typeorm').ILike(`%${emailQuery}%`)
+            },
+            relations: ['tenant', 'branch'],
+            take: 20
+        });
+    }
 }
