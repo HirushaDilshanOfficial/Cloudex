@@ -23,25 +23,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         const request = ctx.getRequest();
 
-        // Debug logging to file
-        try {
-            const debugInfo = {
-                timestamp: new Date().toISOString(),
-                path: httpAdapter.getRequestUrl(request),
-                method: httpAdapter.getRequestMethod(request),
-                body: request.body,
-                user: request.user,
-                error: exception instanceof Error ? {
-                    message: exception.message,
-                    stack: exception.stack,
-                    name: exception.name
-                } : exception
-            };
-            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/error_dump.json', JSON.stringify(debugInfo, null, 2));
-        } catch (e) {
-            console.error('Failed to write error dump', e);
-        }
-
         const responseBody = {
             statusCode: httpStatus,
             timestamp: new Date().toISOString(),
@@ -51,4 +32,3 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
     }
-}
