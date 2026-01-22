@@ -72,11 +72,7 @@ export class UsersService {
             }
         }
 
-        const fs = require('fs');
         try {
-            // Debug logging
-            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/debug_user_update.json', JSON.stringify(updateUserDto, null, 2));
-
             if (updateUserDto.password) {
                 const salt = await bcrypt.genSalt();
                 updateUserDto.passwordHash = await bcrypt.hash(updateUserDto.password, salt);
@@ -91,11 +87,6 @@ export class UsersService {
             return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
         } catch (error) {
             console.error('Error updating user:', error);
-            fs.writeFileSync('/Users/hirushadilshan/Desktop/Cloudex/debug_user_update_error.json', JSON.stringify({
-                error: error.message,
-                stack: error.stack,
-                dto: updateUserDto
-            }, null, 2));
             throw error;
         }
     }
