@@ -16,7 +16,7 @@ export default function LandingPage() {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+//tt
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.type === 'email' ? 'email' : (e.target.placeholder === 'Jane' ? 'firstName' : (e.target.placeholder === 'Doe' ? 'lastName' : 'message'))]: e.target.value }));
     // Note: The above logic is a bit fragile due to reliance on placeholders. 
