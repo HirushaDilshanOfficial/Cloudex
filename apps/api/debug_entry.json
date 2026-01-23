@@ -1,14 +1,15 @@
 {
   "tenantId": "a1551256-3f15-4135-911f-305a08758959",
+  "tableId": "78cea022-a5c7-481d-88eb-2af99e854727",
   "items": [
     {
-      "productId": "8dab342a-be19-4b30-b057-97190b7fd585",
-      "quantity": 5,
-      "price": 750
+      "productId": "4b34c55c-2975-4daf-996e-4e0971d258d4",
+      "quantity": 1,
+      "price": 420
     }
   ],
-  "totalAmount": 4125,
-  "orderType": "takeaway",
+  "totalAmount": 462,
+  "orderType": "dining",
   "paymentMethod": "CASH",
   "status": "pending",
   "paymentStatus": "PAID",
