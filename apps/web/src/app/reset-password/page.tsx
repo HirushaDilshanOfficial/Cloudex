@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { Lock, ArrowRight, Utensils, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ function ResetPasswordForm() {
         }
 
         try {
-            await axios.post('http://localhost:3001/auth/reset-password', {
+            await api.post('/auth/reset-password', {
                 token,
                 password,
             });

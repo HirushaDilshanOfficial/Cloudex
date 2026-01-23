@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { Mail, ArrowRight, Utensils, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
         setMessage('');
 
         try {
-            await axios.post('http://localhost:3001/auth/forgot-password', { email });
+            await api.post('/auth/forgot-password', { email });
             setMessage('If an account exists with this email, you will receive a password reset link shortly.');
         } catch (err) {
             setError('An error occurred. Please try again.');
