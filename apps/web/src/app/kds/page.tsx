@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/auth-store';
 import { Clock, CheckCircle, PlayCircle, LogOut, AlertTriangle, Package } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
@@ -98,12 +98,10 @@ export default function KdsPage() {
         const fetchOrders = async () => {
             try {
                 const url = branchId
-                    ? `http://localhost:3001/kds/active?tenantId=${tenantId}&branchId=${branchId}`
-                    : `http://localhost:3001/kds/active?tenantId=${tenantId}`;
+                    ? `/kds/active?tenantId=${tenantId}&branchId=${branchId}`
+                    : `/kds/active?tenantId=${tenantId}`;
 
-                const response = await axios.get(url, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await api.get(url);
                 setOrders(response.data);
             } catch (error) {
                 console.error('Failed to fetch orders', error);
@@ -173,9 +171,7 @@ export default function KdsPage() {
 
     const updateStatus = async (orderId: string, status: string, reason?: string) => {
         try {
-            await axios.put(`http://localhost:3001/kds/orders/${orderId}/status`, { status, tenantId, reason }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put(`/kds/orders/${orderId}/status`, { status, tenantId, reason });
             // Optimistic update
             setOrders((prev) => {
                 if (status === 'ready' || status === 'completed' || status === 'cancelled') {
@@ -229,9 +225,7 @@ export default function KdsPage() {
 
     const handleOpenReportModal = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/inventory/ingredients?tenantId=${tenantId}`);
             setIngredients(response.data);
             setShowReportModal(true);
         } catch (error) {
@@ -242,9 +236,7 @@ export default function KdsPage() {
 
     const handleOpenStockModal = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/inventory/ingredients?tenantId=${tenantId}`);
             setIngredients(response.data);
             setShowStockModal(true);
         } catch (error) {
@@ -259,12 +251,10 @@ export default function KdsPage() {
             return;
         }
         try {
-            await axios.post('http://localhost:3001/inventory/alerts', {
+            await api.post('/inventory/alerts', {
                 ingredientId: selectedIngredientId,
                 notes: reportNotes,
                 tenantId,
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Low stock reported to manager');
             setShowReportModal(false);
@@ -279,12 +269,10 @@ export default function KdsPage() {
     const fetchHistoryOrders = async () => {
         try {
             const url = branchId
-                ? `http://localhost:3001/kds/completed?tenantId=${tenantId}&branchId=${branchId}`
-                : `http://localhost:3001/kds/completed?tenantId=${tenantId}`;
+                ? `/kds/completed?tenantId=${tenantId}&branchId=${branchId}`
+                : `/kds/completed?tenantId=${tenantId}`;
 
-            const response = await axios.get(url, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(url);
             setHistoryOrders(response.data);
         } catch (error) {
             console.error('Failed to fetch history', error);

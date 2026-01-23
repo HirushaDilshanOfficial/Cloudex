@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
-import axios from 'axios';
 import { generateReport } from '@/lib/report-generator';
 import { Plus, Trash2, User, Pencil, Download } from 'lucide-react';
 
@@ -78,8 +78,8 @@ export default function UserManagementPage() {
     const fetchData = async () => {
         try {
             const [usersRes, branchesRes] = await Promise.all([
-                axios.get(`http://localhost:3001/users?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/branches`, { headers: { Authorization: `Bearer ${token}` } }),
+                api.get(`/users?tenantId=${tenantId}`),
+                api.get(`/branches`),
             ]);
             setUsers(usersRes.data);
             setBranches(branchesRes.data);
@@ -96,17 +96,17 @@ export default function UserManagementPage() {
 
         try {
             if (editingUser) {
-                await axios.patch(`http://localhost:3001/users/${editingUser.id}`, {
+                await api.patch(`/users/${editingUser.id}`, {
                     ...formData,
                     branchId: formData.branchId || null,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                });
                 toast.success('User updated successfully');
             } else {
-                await axios.post(`http://localhost:3001/users`, {
+                await api.post(`/users`, {
                     ...formData,
                     branchId: formData.branchId || null,
                     tenantId,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                });
                 toast.success('User created successfully');
             }
             setShowModal(false);
@@ -124,9 +124,7 @@ export default function UserManagementPage() {
     const confirmDeleteUser = async () => {
         if (!userToDelete) return;
         try {
-            await axios.delete(`http://localhost:3001/users/${userToDelete}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/users/${userToDelete}`);
             toast.success('User deleted successfully');
             fetchData();
             setShowDeleteConfirmation(false);

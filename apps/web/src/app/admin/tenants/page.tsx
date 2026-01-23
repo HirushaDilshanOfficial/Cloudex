@@ -13,6 +13,10 @@ interface Tenant {
     isActive: boolean;
 }
 
+import api from '@/lib/api';
+
+// ...
+
 export default function TenantsPage() {
     const token = useAuthStore((state) => state.token);
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -20,11 +24,9 @@ export default function TenantsPage() {
 
     useEffect(() => {
         if (token) {
-            fetch('http://localhost:3001/tenants', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => {
+            api.get('/tenants')
+                .then(res => {
+                    const data = res.data;
                     // Start of Selection
                     if (Array.isArray(data)) {
                         setTenants(data);

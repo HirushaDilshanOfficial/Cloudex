@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { generateReport } from '@/lib/report-generator';
 import { Plus, Search, Edit, Trash2, Image as ImageIcon, X, AlertTriangle, List, Upload, Download } from 'lucide-react';
 
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
@@ -70,9 +70,7 @@ export default function MenuPage() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/products?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/products?tenantId=${tenantId}`);
             setProducts(response.data);
         } catch (error) {
             console.error('Failed to fetch products', error);
@@ -83,9 +81,7 @@ export default function MenuPage() {
 
     const fetchCategories = async () => {
         try {
-            const response = await axios.get(`http://localhost:3001/categories?tenantId=${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get(`/categories?tenantId=${tenantId}`);
             setCategories(response.data);
         } catch (error) {
             console.error('Failed to fetch categories', error);
@@ -134,14 +130,10 @@ export default function MenuPage() {
             };
 
             if (selectedProduct) {
-                await axios.patch(`http://localhost:3001/products/${selectedProduct.id}`, payload, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.patch(`/products/${selectedProduct.id}`, payload);
                 toast.success('Product updated successfully');
             } else {
-                await axios.post('http://localhost:3001/products', payload, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post('/products', payload);
                 toast.success('Product created successfully');
             }
 
@@ -161,9 +153,7 @@ export default function MenuPage() {
     const handleDelete = async () => {
         if (!productToDelete) return;
         try {
-            await axios.delete(`http://localhost:3001/products/${productToDelete}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/products/${productToDelete}`);
             toast.success('Product deleted successfully');
             fetchData();
             setShowDeleteModal(false);
@@ -178,10 +168,10 @@ export default function MenuPage() {
     const handleAddCategory = async () => {
         if (!newCategoryName.trim()) return;
         try {
-            await axios.post(`http://localhost:3001/categories`, {
+            await api.post(`/categories`, {
                 name: newCategoryName,
                 tenantId
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            });
             toast.success('Category added');
             setNewCategoryName('');
             fetchCategories();
@@ -193,9 +183,7 @@ export default function MenuPage() {
     const handleDeleteCategory = async (id: string) => {
         if (!confirm('Delete this category?')) return;
         try {
-            await axios.delete(`http://localhost:3001/categories/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/categories/${id}`);
             toast.success('Category deleted');
             fetchCategories();
         } catch (error) {
@@ -205,9 +193,7 @@ export default function MenuPage() {
 
     const handleLoadDefaults = async () => {
         try {
-            await axios.post(`http://localhost:3001/categories/seed-defaults`, { tenantId }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post(`/categories/seed-defaults`, { tenantId });
             toast.success('Default categories loaded');
             fetchCategories();
         } catch (error) {

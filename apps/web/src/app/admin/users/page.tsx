@@ -22,6 +22,10 @@ interface SearchResult {
     };
 }
 
+import api from '@/lib/api';
+
+// ...
+
 export default function UserSearchPage() {
     const token = useAuthStore((state) => state.token);
     const [query, setQuery] = useState('');
@@ -36,12 +40,8 @@ export default function UserSearchPage() {
         setLoading(true);
         setHasSearched(true);
         try {
-            const res = await fetch(`http://localhost:3001/users/search?email=${encodeURIComponent(query)}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Search failed');
-            const data = await res.json();
-            setResults(data);
+            const res = await api.get(`/users/search?email=${encodeURIComponent(query)}`);
+            setResults(res.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to search users');

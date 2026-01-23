@@ -19,6 +19,10 @@ interface Tenant {
     status: 'ACTIVE' | 'SUSPENDED';
 }
 
+import api from '@/lib/api';
+
+// ...
+
 export default function TenantDetailPage() {
     const { tenantId } = useParams();
     const authStore = useAuthStore();
@@ -32,15 +36,9 @@ export default function TenantDetailPage() {
 
     useEffect(() => {
         if (token && tenantId) {
-            fetch(`http://localhost:3001/tenants/${tenantId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            api.get(`/tenants/${tenantId}`)
                 .then(res => {
-                    if (!res.ok) throw new Error('Failed to fetch tenant');
-                    return res.json();
-                })
-                .then(data => {
-                    setTenant(data);
+                    setTenant(res.data);
                     setLoading(false);
                 })
                 .catch(err => {
@@ -56,15 +54,7 @@ export default function TenantDetailPage() {
         if (!tenant) return;
         setSaving(true);
         try {
-            const res = await fetch(`http://localhost:3001/tenants/${tenant.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(tenant)
-            });
-            if (!res.ok) throw new Error('Failed to update');
+            await api.put(`/tenants/${tenant.id}`, tenant);
             toast.success('Tenant updated successfully');
         } catch (error) {
             toast.error('Failed to update tenant');
@@ -77,14 +67,8 @@ export default function TenantDetailPage() {
         if (!tenant) return;
         setImpersonating(true);
         try {
-            const res = await fetch(`http://localhost:3001/auth/impersonate/${tenant.id}`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (!res.ok) throw new Error('Failed to impersonate');
-
-            const data = await res.json();
+            const res = await api.post(`/auth/impersonate/${tenant.id}`);
+            const data = res.data;
             setToken(data.access_token);
             setUser(data.user);
             toast.success(`Logged in as Admin for ${tenant.name}`);
@@ -100,31 +84,20 @@ export default function TenantDetailPage() {
         if (!tenant) return;
         const newStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
         setTenant({ ...tenant, status: newStatus });
-        // Auto-save logic could go here, but let's stick to the save button or immediate effect
-        // Immediate effect implementation:
-        fetch(`http://localhost:3001/tenants/${tenant.id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ status: newStatus })
-        }).then(res => {
-            if (!res.ok) toast.error('Failed to update status');
-            else toast.success(`Tenant ${newStatus === 'ACTIVE' ? 'Activated' : 'Suspended'}`);
-        });
+
+        api.put(`/tenants/${tenant.id}`, { status: newStatus })
+            .then(res => {
+                toast.success(`Tenant ${newStatus === 'ACTIVE' ? 'Activated' : 'Suspended'}`);
+            })
+            .catch(err => {
+                toast.error('Failed to update status');
+            });
     };
 
     const confirmDelete = async () => {
         if (!tenant) return;
         try {
-            const res = await fetch(`http://localhost:3001/tenants/${tenant.id}`, {
-                method: 'DELETE',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (!res.ok) throw new Error('Failed to delete');
+            await api.delete(`/tenants/${tenant.id}`);
             toast.success('Tenant deleted successfully');
             router.push('/admin/tenants');
         } catch (error) {
