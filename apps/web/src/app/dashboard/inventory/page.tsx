@@ -96,6 +96,8 @@ export default function InventoryPage() {
     useEffect(() => {
         if (token && tenantId) {
             fetchData();
+        } else if (!token) {
+            setLoading(false);
         }
     }, [token, tenantId]);
 
