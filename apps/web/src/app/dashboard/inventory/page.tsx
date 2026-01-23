@@ -77,12 +77,14 @@ export default function InventoryPage() {
     }, [token]);
 
     const fetchData = async () => {
+        console.log('Fetching inventory data for tenant:', tenantId);
         try {
             const [ingredientsRes, branchesRes, alertsRes] = await Promise.all([
                 api.get(`/inventory/ingredients?tenantId=${tenantId}`),
                 api.get(`/branches`),
                 api.get(`/inventory/alerts?tenantId=${tenantId}`),
             ]);
+            console.log('Inventory fetched:', ingredientsRes.data);
             setIngredients(ingredientsRes.data);
             setBranches(branchesRes.data);
             setAlerts(alertsRes.data);
