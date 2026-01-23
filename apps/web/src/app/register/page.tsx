@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import Link from 'next/link';
 import { Mail, Lock, User, Building2, ArrowRight, Utensils } from 'lucide-react';
@@ -37,7 +37,7 @@ export default function RegisterPage() {
         setIsLoading(true);
         setError('');
         try {
-            const response = await axios.post('http://localhost:3001/auth/signup', formData);
+            const response = await api.post('/auth/signup', formData);
             const { access_token } = response.data;
             setToken(access_token);
             router.push('/dashboard');

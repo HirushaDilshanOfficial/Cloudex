@@ -51,13 +51,8 @@ export default function AnalyticsPage() {
         if (tenantId && token) {
             const fetchTenantDetails = async () => {
                 try {
-                    const response = await fetch(`http://localhost:3001/tenants/${tenantId}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setTenantDetails(data);
-                    }
+                    const response = await api.get(`/tenants/${tenantId}`);
+                    setTenantDetails(response.data);
                 } catch (error) {
                     console.error('Failed to fetch tenant details', error);
                 }

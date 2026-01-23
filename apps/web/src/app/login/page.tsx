@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
@@ -50,7 +50,7 @@ export default function LoginPage() {
         setIsLoading(true);
         setError('');
         try {
-            const response = await axios.post('http://localhost:3001/auth/login', {
+            const response = await api.post('/auth/login', {
                 email,
                 password,
             });

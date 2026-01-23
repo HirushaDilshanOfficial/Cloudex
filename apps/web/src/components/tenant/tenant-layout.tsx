@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { AlertTriangle, Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import '@/lib/i18n';
+import api from '@/lib/api';
 
 interface DecodedToken {
     role: string;
@@ -59,13 +60,8 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                     const decoded: DecodedToken = jwtDecode(token);
                     // @ts-ignore
                     const tenantId = decoded.tenantId;
-                    const response = await fetch(`http://localhost:3001/tenants/${tenantId}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setTenantDetails(data);
-                    }
+                    const response = await api.get(`/tenants/${tenantId}`);
+                    setTenantDetails(response.data);
                 } catch (error) {
                     console.error('Failed to fetch tenant details', error);
                 }
@@ -86,14 +82,9 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                     const decoded: DecodedToken = jwtDecode(token);
                     // @ts-ignore
                     const tenantId = decoded.tenantId;
-                    const response = await fetch(`http://localhost:3001/inventory/alerts?tenantId=${tenantId}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setNotifications(data);
-                        setUnreadCount(data.length);
-                    }
+                    const response = await api.get(`/inventory/alerts?tenantId=${tenantId}`);
+                    setNotifications(response.data);
+                    setUnreadCount(response.data.length);
                 } catch (error) {
                     console.error('Failed to fetch alerts', error);
                 }
@@ -111,7 +102,7 @@ export function TenantLayout({ children }: { children: React.ReactNode }) {
                 // @ts-ignore
                 const branchId = decoded.branchId;
 
-                const socket = io('http://localhost:3001/inventory');
+                const socket = io(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/inventory`);
 
                 socket.on('connect', () => {
                     console.log('Connected to Inventory Gateway');
