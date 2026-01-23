@@ -64,12 +64,14 @@ export default function RecipeManagerPage() {
     }, [tenantId]);
 
     const fetchData = async () => {
+        console.log('Fetching recipe data for tenant:', tenantId);
         try {
             const [productsRes, ingredientsRes, recipesRes] = await Promise.all([
                 api.get(`/products?tenantId=${tenantId}`),
                 api.get(`/inventory/ingredients?tenantId=${tenantId}`),
                 api.get(`/recipes?tenantId=${tenantId}`),
             ]);
+            console.log('Recipes fetched:', recipesRes.data);
             setProducts(productsRes.data);
             setIngredients(ingredientsRes.data);
             setRecipes(recipesRes.data);
