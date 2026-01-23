@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { generateReport } from '@/lib/report-generator';
 import { Plus, Save, TrendingUp, DollarSign, Calculator, Edit2, Trash2, Download } from 'lucide-react';
 
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
@@ -66,9 +66,9 @@ export default function RecipeManagerPage() {
     const fetchData = async () => {
         try {
             const [productsRes, ingredientsRes, recipesRes] = await Promise.all([
-                axios.get(`http://localhost:3001/products?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/recipes?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
+                api.get(`/products?tenantId=${tenantId}`),
+                api.get(`/inventory/ingredients?tenantId=${tenantId}`),
+                api.get(`/recipes?tenantId=${tenantId}`),
             ]);
             setProducts(productsRes.data);
             setIngredients(ingredientsRes.data);
@@ -86,9 +86,7 @@ export default function RecipeManagerPage() {
     const confirmDelete = async () => {
         if (!recipeToDelete) return;
         try {
-            await axios.delete(`http://localhost:3001/recipes/${recipeToDelete}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/recipes/${recipeToDelete}`);
             toast.success('Recipe deleted successfully');
             fetchData();
             setShowDeleteModal(false);
@@ -141,21 +139,17 @@ export default function RecipeManagerPage() {
         try {
             if (editingRecipeId) {
                 // Update existing recipe
-                await axios.patch(`http://localhost:3001/recipes/${editingRecipeId}`, {
+                await api.patch(`/recipes/${editingRecipeId}`, {
                     productId: selectedProduct,
                     items: recipeItems,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
                 });
                 toast.success('Recipe updated successfully!');
             } else {
                 // Create new recipe
-                await axios.post('http://localhost:3001/recipes', {
+                await api.post('/recipes', {
                     productId: selectedProduct,
                     items: recipeItems,
                     tenantId: tenantId,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
                 });
                 toast.success('Recipe saved successfully!');
             }

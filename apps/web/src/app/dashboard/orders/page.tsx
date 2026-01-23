@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { generateReport } from '@/lib/report-generator';
 import { Eye, Clock, CheckCircle, XCircle, PlayCircle, Armchair, Download } from 'lucide-react';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
@@ -63,8 +62,8 @@ export default function OrderHistoryPage() {
     const fetchData = async () => {
         try {
             const [ordersRes, branchesRes] = await Promise.all([
-                axios.get(`http://localhost:3001/orders?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/branches`, { headers: { Authorization: `Bearer ${token}` } }),
+                api.get(`/orders?tenantId=${tenantId}`),
+                api.get(`/branches`),
             ]);
             setOrders(ordersRes.data);
             setBranches(branchesRes.data);
@@ -77,9 +76,7 @@ export default function OrderHistoryPage() {
 
     const updatePaymentStatus = async (orderId: string, status: string) => {
         try {
-            await axios.patch(`http://localhost:3001/orders/${orderId}/payment-status`, { status }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.patch(`/orders/${orderId}/payment-status`, { status });
             toast.success('Payment status updated');
             fetchData();
             if (selectedOrder) {
