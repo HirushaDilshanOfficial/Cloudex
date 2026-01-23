@@ -13,20 +13,18 @@ interface DashboardStats {
     recentTenants: any[];
 }
 
+import api from '@/lib/api';
+
+// ...
+
 export default function AdminDashboardPage() {
     const token = useAuthStore((state) => state.token);
     const [stats, setStats] = useState<DashboardStats | null>(null);
 
     useEffect(() => {
         if (token) {
-            fetch('http://localhost:3001/tenants/dashboard-stats', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error('Failed to fetch stats');
-                    return res.json();
-                })
-                .then(data => setStats(data))
+            api.get('/tenants/dashboard-stats')
+                .then(res => setStats(res.data))
                 .catch(err => {
                     console.error(err);
                     toast.error('Failed to load dashboard stats');

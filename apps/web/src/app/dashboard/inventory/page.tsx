@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { generateReport } from '@/lib/report-generator';
 import { Plus, Search, AlertTriangle, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle, CheckCircle, Download, History } from 'lucide-react';
 
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
 import { jwtDecode } from 'jwt-decode';
 import toast from 'react-hot-toast';
@@ -79,9 +79,9 @@ export default function InventoryPage() {
     const fetchData = async () => {
         try {
             const [ingredientsRes, branchesRes, alertsRes] = await Promise.all([
-                axios.get(`http://localhost:3001/inventory/ingredients?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/branches`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`http://localhost:3001/inventory/alerts?tenantId=${tenantId}`, { headers: { Authorization: `Bearer ${token}` } }),
+                api.get(`/inventory/ingredients?tenantId=${tenantId}`),
+                api.get(`/branches`),
+                api.get(`/inventory/alerts?tenantId=${tenantId}`),
             ]);
             setIngredients(ingredientsRes.data);
             setBranches(branchesRes.data);
@@ -103,17 +103,17 @@ export default function InventoryPage() {
         setIsSaving(true);
         try {
             if (editingIngredient) {
-                await axios.patch(`http://localhost:3001/inventory/ingredients/${editingIngredient.id}`, {
+                await api.patch(`/inventory/ingredients/${editingIngredient.id}`, {
                     ...formData,
                     branchId: isBranchSpecific ? formData.branchId : null,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                });
                 toast.success('Ingredient updated successfully');
             } else {
-                await axios.post(`http://localhost:3001/inventory/ingredients`, {
+                await api.post(`/inventory/ingredients`, {
                     ...formData,
                     branchId: isBranchSpecific ? formData.branchId : null,
                     tenantId,
-                }, { headers: { Authorization: `Bearer ${token}` } });
+                });
                 toast.success('Ingredient created successfully');
             }
             setShowModal(false);
@@ -135,9 +135,7 @@ export default function InventoryPage() {
     const confirmDelete = async () => {
         if (!ingredientToDelete) return;
         try {
-            await axios.delete(`http://localhost:3001/inventory/ingredients/${ingredientToDelete}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/inventory/ingredients/${ingredientToDelete}`);
             toast.success('Ingredient deleted successfully');
             fetchData();
         } catch (error) {
@@ -172,13 +170,13 @@ export default function InventoryPage() {
         if (!selectedIngredient) return;
         setIsSaving(true);
         try {
-            await axios.post(`http://localhost:3001/inventory/stock`, {
+            await api.post(`/inventory/stock`, {
                 ingredientId: selectedIngredient.id,
                 type: adjustData.type,
                 quantity: adjustData.quantity,
                 reason: adjustData.reason,
                 tenantId,
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            });
             toast.success('Stock adjusted successfully');
             setShowAdjustModal(false);
             fetchData();
@@ -192,9 +190,7 @@ export default function InventoryPage() {
 
     const handleResolveAlert = async (id: string) => {
         try {
-            await axios.patch(`http://localhost:3001/inventory/alerts/${id}/resolve`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.patch(`/inventory/alerts/${id}/resolve`, {});
             toast.success('Alert resolved');
             fetchData();
         } catch (error) {
