@@ -6,6 +6,7 @@ import { generateReport } from '@/lib/report-generator';
 import { Eye, Clock, CheckCircle, XCircle, PlayCircle, Armchair, Download } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import { jwtDecode } from 'jwt-decode';
 
 interface OrderItem {
     id: string;
